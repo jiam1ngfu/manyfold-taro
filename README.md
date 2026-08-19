@@ -2,6 +2,10 @@
 
 English · [中文](README_CN.md)
 
+> **This deployment runs an AI tarot site — see [TAROT.md](TAROT.md).** The site is at `/`,
+> the operator console described below moved to `/console`, and the starter itself is
+> otherwise unchanged.
+
 A Cloudflare Workers app template pre-wired with [Manyfold](https://manyfold.ai) AI-agent
 connectivity. Deploy it in one click, connect your Manyfold agents from the page, verify the
 wiring with a streaming chat — then build whatever you actually wanted to build on top of a

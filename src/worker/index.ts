@@ -13,10 +13,14 @@
  *   GET    /api/agents/:agentId/messages    admin  chat history
  *   DELETE /api/agents/:agentId/messages    admin  reset the conversation
  *   POST   /api/agents/:agentId/chat        admin  one chat turn (text/event-stream)
+ *   *      /api/tarot/*                     open   the tarot site (src/worker/tarot/routes.ts)
  *
  * "admin" routes require the x-admin-password header — but only when the
  * ADMIN_PASSWORD secret is set. Without it the app is open, which is what makes
  * zero-config deploys work; set the secret before sharing the URL.
+ *
+ * The tarot routes are open even when it is set: they are the product, and they
+ * are metered instead. See isPublicPath below.
  */
 
 import { Hono } from 'hono';
@@ -35,8 +39,9 @@ import {
   verifyAgent,
 } from './connect';
 import { getConversation, handleChatTurn, resetConversation } from './chat';
+import { tarot } from './tarot/routes';
 
-const SERVICE = 'cloudflare-worker-starter';
+const SERVICE = 'manyfold-taro';
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -73,10 +78,25 @@ const adminHeaderOk = (c: { env: Env; req: { header: (name: string) => string | 
   return safeEqual(c.req.header('x-admin-password') ?? '', required);
 };
 
-// Everything except /api/health and /api/state needs the password (when one is set).
+/**
+ * Routes a visitor may use without the admin password.
+ *
+ * /api/health and /api/state are the starter's own two exceptions. /api/tarot/*
+ * is the third, and it is the product itself: this deployment is a public tarot
+ * site, and nobody can be asked for an operator password before they are allowed
+ * to ask a question.
+ *
+ * The reason the gate exists — that a public URL must not let strangers spend
+ * the owner's agent budget — is answered for these routes in
+ * src/worker/tarot/ratelimit.ts instead: every path that can cause a billable
+ * turn is metered per session and per IP. The operator surface (connecting
+ * agents, the verification chat, disconnecting) stays behind the password.
+ */
+const isPublicPath = (path: string): boolean =>
+  path === '/api/health' || path === '/api/state' || path.startsWith('/api/tarot/');
+
 app.use('/api/*', async (c, next) => {
-  const path = new URL(c.req.url).pathname;
-  if (path !== '/api/health' && path !== '/api/state' && !adminHeaderOk(c)) {
+  if (!isPublicPath(new URL(c.req.url).pathname) && !adminHeaderOk(c)) {
     throw new HttpError(401, 'admin_password_invalid', 'This deployment requires the admin password.');
   }
   await next();
@@ -168,6 +188,9 @@ app.post('/api/agents/:agentId/chat', async (c) => {
     waitUntil: (promise) => c.executionCtx.waitUntil(promise),
   });
 });
+
+// The tarot site. Public by design — see isPublicPath above.
+app.route('/api/tarot', tarot);
 
 app.all('/api/*', () => {
   throw new HttpError(404, 'not_found', 'No such API route.');

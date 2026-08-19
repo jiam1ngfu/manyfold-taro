@@ -15,8 +15,17 @@ export interface Env {
   ENVIRONMENT?: string;
   /** Optional: >=32 chars. Without it a key is generated and kept in D1. */
   CONFIG_ENCRYPTION_KEY?: string;
-  /** Optional: when set, all routes except /api/health and /api/state require x-admin-password. */
+  /** Optional: when set, operator routes require x-admin-password. /api/tarot/* stays public. */
   ADMIN_PASSWORD?: string;
+
+  /**
+   * Optional: pins which connected agent plays the tarot reader. Without it the
+   * most recently connected agent is used, which is what the one-click flow
+   * produces. Set it on a deployment that has several agents connected.
+   */
+  TAROT_AGENT_ID?: string;
+  /** Set to "1" to force the built-in demo reader even when an agent is connected. */
+  TAROT_DEMO?: string;
 }
 
 /** Everything needed to talk to one agent over A2A. */

@@ -81,6 +81,68 @@ CREATE TABLE IF NOT EXISTS messages (
 );
 
 CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages (conversation_id, id);
+
+-- ───────── tarot ─────────
+
+-- One round of divination. Each round is its own row and its own A2A context:
+-- "再问一件事" never overwrites the previous reading, and two rounds never share
+-- a spread. The cards column is the committed draw, written exactly once when
+-- the user stops the shuffle, and revealed counts how many are turned over.
+CREATE TABLE IF NOT EXISTS tarot_readings (
+  id             TEXT PRIMARY KEY,
+  session_id     TEXT NOT NULL,
+  question       TEXT NOT NULL,
+  locale         TEXT NOT NULL DEFAULT 'zh',
+  status         TEXT NOT NULL DEFAULT 'greeting',
+  greeting       TEXT NOT NULL DEFAULT '',
+  cards          TEXT,
+  revealed       INTEGER NOT NULL DEFAULT 0,
+  hints          TEXT NOT NULL DEFAULT '[]',
+  interpretation TEXT,
+  context_id     TEXT,
+  active_task_id TEXT,
+  agent_id       TEXT,
+  demo           INTEGER NOT NULL DEFAULT 0,
+  previous_id    TEXT,
+  created_at     TEXT NOT NULL,
+  updated_at     TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_tarot_readings_session ON tarot_readings (session_id, created_at);
+
+-- Follow-up turns inside one reading, i.e. "继续解读这三张牌".
+CREATE TABLE IF NOT EXISTS tarot_followups (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  reading_id TEXT NOT NULL,
+  role       TEXT NOT NULL,
+  content    TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_tarot_followups_reading ON tarot_followups (reading_id, id);
+
+-- Frozen public copies. The snapshot column holds the whole shared payload as it
+-- was at share time, so nothing that happens to the reading afterwards can change
+-- what a link already handed out.
+CREATE TABLE IF NOT EXISTS tarot_shares (
+  token      TEXT PRIMARY KEY,
+  reading_id TEXT NOT NULL,
+  snapshot   TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_tarot_shares_reading ON tarot_shares (reading_id, created_at);
+
+-- Fixed-window counters for the public tarot routes. Keyed by
+-- "<scope>:<subject>:<window>", so an expired window is simply a row nobody
+-- reads again and the sweeper deletes.
+CREATE TABLE IF NOT EXISTS tarot_rate (
+  bucket       TEXT PRIMARY KEY,
+  count        INTEGER NOT NULL,
+  window_start INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_tarot_rate_window ON tarot_rate (window_start);
 `;
 
 /**
