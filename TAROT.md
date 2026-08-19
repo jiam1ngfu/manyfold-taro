@@ -1,0 +1,142 @@
+# 牌面 · Facing the Cards
+
+An AI tarot site built on this Worker. Three cards, one question, one reading.
+
+The starter it grew out of is untouched and still there — the operator console moved from `/`
+to `/console`. Everything tarot lives in three new directories and one new set of tables.
+
+```
+/            the tarot site            src/app/tarot/
+/s/:token    a frozen shared reading   src/app/tarot/SharePage.tsx
+/console     the starter's console     src/app/App.tsx  (unchanged)
+```
+
+## The flow
+
+| # | State | What happens |
+| --- | --- | --- |
+| 1 | 提问 | One input, one button. No welcome page, no examples, no spread picker. |
+| 2 | 接住 | The reader answers the question in one to three sentences. Nothing is drawn yet, so nothing may be named. |
+| 3 | 洗牌 | The visitor stops the shuffle whenever they like. **The cards are chosen at that click, on the server.** |
+| 4 | 翻牌 | Three backs, turned over strictly in order, each with its position, orientation and one line. |
+| 5 | 解读 | One reading of all three cards in eight fixed sections — never three meanings stapled together. |
+| 6 | 收尾 | 分享这次解读 · 再问一件事 · 继续解读这三张牌 |
+
+Positions are fixed and not configurable: **此刻的处境 · 隐藏的影响 · 接下来的指引**.
+Reversals are always on. The three cards are always distinct.
+
+## Where the cards come from
+
+`src/worker/tarot/draw.ts`, and nowhere else.
+
+- A CSPRNG (`crypto.getRandomValues`) with rejection sampling, so the distribution is flat —
+  no modulo bias — and a partial Fisher–Yates for distinctness.
+- The browser never picks a card, an orientation, or a seed. It asks the Worker to stop the
+  shuffle; the Worker answers with what it committed.
+- **The reader never picks either.** Every request type in `diviner.ts` carries cards that
+  were already drawn. There is no request shape in which a card can be chosen, so the reading
+  cannot be steered by the question.
+- Face-down cards do not exist over the wire: `ReadingView.cards` contains only cards already
+  turned over, and `pending` counts the rest.
+- The draw is committed exactly once. Pressing the button twice is the same spread.
+
+## The reader (Agent 2)
+
+The site talks to one connected Manyfold agent over A2A. Until one is connected it runs its
+own demo reader, so the whole site is usable and demonstrable standalone.
+
+```
+POST /api/tarot/readings/:id/greeting        →  diviner.speak({kind: 'greeting', …})
+POST /api/tarot/readings/:id/reveal          →  diviner.speak({kind: 'hint', card, index, …})
+POST /api/tarot/readings/:id/interpretation  →  diviner.speak({kind: 'interpretation', cards, …})
+POST /api/tarot/readings/:id/follow-ups      →  diviner.speak({kind: 'followup', …})
+```
+
+**Connecting one:** open `/console`, connect an agent as usual. The most recently connected
+agent becomes the reader. On a deployment with several agents, pin one with `TAROT_AGENT_ID`.
+Set `TAROT_DEMO=1` to force the demo reader even when an agent is connected.
+
+**What the reader does:** catch the question, speak in an immersive diviner voice, give a
+short line per card as it turns, interpret the three cards as one spread, connect them, answer
+follow-ups about *this* spread, and say when a question has become a new round.
+
+**What the reader cannot do**, structurally, not by instruction: draw a card, choose an
+orientation, write to the database, mint a share link, read site files, reach the network,
+execute code, see another visitor's reading, or change what the frontend is showing.
+
+**If the reader fails** the visitor is told and can retry. The site does not quietly serve
+sample text over a real reader's failure — the one exception is a single card's line during
+the flip, which falls back to the deck's own keyword line rather than stalling the ritual.
+
+## Protocol in, prose out
+
+`src/worker/tarot/prompt.ts` is the airlock.
+
+- The visitor's text is fenced as material, never as instructions, and protocol markers are
+  stripped from it — a question cannot forge a `[CONCLUSION]` section or a new-round verdict.
+- The reply is parsed into the eight sections by tag, with a readable fallback when the reader
+  ignores the tags, and an explicit "unusable" verdict rather than a blank page.
+- `<think>` blocks, scratchpads and reasoning preambles are stripped.
+- The browser deliberately **ignores `delta` events** for the interpretation, so the tagged
+  draft never reaches the screen. The wait is filled with the reader's own voice.
+
+Nowhere in the UI, in either language: AI 正在分析 / 模型正在生成 / 系统处理中 / 推理过程 /
+Chain of Thought / 内部工具调用. There is a test that enforces this over every string in
+`src/shared/tarot/i18n.ts`.
+
+## Sharing
+
+`分享这次解读` always shares the round currently on screen. Each round is its own record and a
+new round never overwrites an old one.
+
+A share is a **frozen copy**, not a view: the snapshot is serialized into `tarot_shares` at
+share time, and nothing that happens to the reading afterwards can change what a link already
+handed out. Two shares of the same reading are two independent records.
+
+Shared by default: the three cards, their positions, upright/reversed, the one-sentence
+conclusion, and the product signature. Never shared: the private conversation, the visitor's
+identity, other rounds. The original question is included only if the visitor ticks the box.
+
+## Who a reading belongs to
+
+There are no accounts. Each browser gets one opaque HttpOnly cookie (`taro_sid`) that means
+only "the same browser as before". A reading belongs to the session that started it; anyone
+else asking for it gets **404, not 403**, so an id cannot be probed for existence. Share links
+are the deliberate exception: public, no cookie, no ownership.
+
+Every path that can cost an agent turn is metered per session *and* per IP
+(`src/worker/tarot/ratelimit.ts`), because these routes are public by design — a visitor
+cannot be asked for the operator password before they are allowed to ask a question.
+
+## Files
+
+| File | Purpose |
+| --- | --- |
+| `src/shared/tarot/deck.ts` | The 78-card deck, both languages, upright and reversed |
+| `src/shared/tarot/i18n.ts` | Every string the visitor reads, in both languages |
+| `src/shared/tarot/types.ts` | The API surface shared by Worker and browser |
+| `src/worker/tarot/draw.ts` | The draw. CSPRNG, distinct, server-side, once |
+| `src/worker/tarot/flow.ts` | The state machine: what may happen next, and what may not |
+| `src/worker/tarot/diviner.ts` | The adapter: A2A agent or built-in demo reader |
+| `src/worker/tarot/prompt.ts` | Prompts out, parsing back, injection hardening |
+| `src/worker/tarot/store.ts` | D1: readings, follow-ups, frozen share snapshots |
+| `src/worker/tarot/ratelimit.ts` | Fixed-window meters, per session and per IP |
+| `src/worker/tarot/routes.ts` | `/api/tarot/*` |
+| `src/app/tarot/TarotApp.tsx` | The six states |
+| `src/app/tarot/SharePage.tsx` | `/s/:token` — reads the snapshot, never the reading |
+
+New tables: `tarot_readings`, `tarot_followups`, `tarot_shares`, `tarot_rate`. They are created
+by `SCHEMA` in `src/worker/db.ts` on the next request, like everything else here.
+
+## Testing
+
+```
+npm test                      # 140 tests, including a full-flow run through the real Worker
+npm run check                 # tsc + vite build + wrangler dry-run
+npm run smoke -- <url>        # drives a whole reading against a live deployment
+```
+
+`tests/tarot-e2e.test.ts` drives the deployed Hono app end to end — CSRF check, cookie, rate
+limiter and real SQL included — against a SQLite database standing in for D1. It is the test
+that notices if the flow itself breaks: a card revealed out of order, a stranger reading
+someone else's reading, a share link that quietly follows the reading it came from.
