@@ -688,18 +688,27 @@ html[data-app='taro'] body {
 }
 
 /* ── 4b · the spread you pick from ──
-   Every card in the deck, face down, swept across the table. The backs overlap
-   like a real sweep; whichever one is under your hand is the one that rises. */
+   Every card in the deck, face down, swept across the table, and nothing else on
+   the screen. The backs overlap like a real sweep; whichever one is under your
+   hand is the one that rises, and the three you set aside stay risen. */
 
-.taro-pick-lead {
+.taro-choose {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: clamp(24px, 5vh, 46px);
+  padding: 40px 0;
+}
+
+.taro-pick-status {
   margin: 0 auto;
   max-width: 32em;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 12px;
-  align-items: baseline;
-  justify-content: center;
+  min-height: 1.6em;
   font-size: 14px;
+  line-height: 1.6;
   color: var(--ink-3);
 }
 
@@ -764,6 +773,36 @@ html[data-app='taro'] body {
 
 .taro-fan-card:active {
   transform: rotate(var(--taro-tilt, 0deg)) translateY(-9px) scale(0.97);
+}
+
+/* Set aside, not turned over. The tilt comes out of it — a card that has been
+   squared up reads as chosen without anything on it having changed. */
+.taro-fan-card.is-chosen,
+.taro-fan-card.is-chosen:hover,
+.taro-fan-card.is-chosen:focus-visible {
+  transform: rotate(0deg) translateY(-26px);
+  border-color: rgba(200, 177, 137, 0.62);
+  color: var(--bone);
+  box-shadow:
+    0 30px 38px -20px #000,
+    0 0 26px -8px rgba(200, 177, 137, 0.45);
+  z-index: 3;
+}
+
+.taro-fan-card.is-chosen .taro-fan-back {
+  opacity: 0.9;
+}
+
+.taro-fan-card.is-chosen::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -13px;
+  width: 16px;
+  height: 1px;
+  transform: translateX(-50%);
+  background: var(--bone);
+  opacity: 0.5;
 }
 
 /* While the reader is speaking the sweep is inert but stays where it was, so

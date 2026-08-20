@@ -21,13 +21,13 @@ const noop = () => undefined;
 
 describe('the spread', () => {
   it('lays out the whole deck', () => {
-    render(<Fan locale="zh" count={DECK_SIZE} taken={[]} disabled={false} onPick={noop} />);
+    render(<Fan locale="zh" count={DECK_SIZE} chosen={[]} disabled={false} onPick={noop} />);
     expect(backs()).toHaveLength(78);
   });
 
   it('names no card anywhere in its markup', () => {
     const { container } = render(
-      <Fan locale="zh" count={DECK_SIZE} taken={[]} disabled={false} onPick={noop} />,
+      <Fan locale="zh" count={DECK_SIZE} chosen={[]} disabled={false} onPick={noop} />,
     );
     const html = container.innerHTML;
     for (const card of DECK) {
@@ -37,37 +37,42 @@ describe('the spread', () => {
     }
   });
 
-  it('takes picked places out, and leaves the rest numbered as they were', () => {
-    render(<Fan locale="zh" count={10} taken={[0, 4]} disabled={false} onPick={noop} />);
-    const labels = backs().map((card) => card.getAttribute('aria-label'));
+  it('leaves chosen places lying in the spread, marked rather than removed', () => {
+    render(<Fan locale="zh" count={10} chosen={[0, 4]} disabled={false} onPick={noop} />);
+    const cards = backs();
 
-    expect(labels).toHaveLength(8);
-    expect(labels).not.toContain('第 1 张，背面朝上');
-    expect(labels).not.toContain('第 5 张，背面朝上');
-    // The gap does not renumber the deck — place 2 is still place 2.
-    expect(labels[0]).toBe('第 2 张，背面朝上');
-    expect(labels.at(-1)).toBe('第 10 张，背面朝上');
+    // Nothing leaves the sweep: picking is a mark, not a removal.
+    expect(cards).toHaveLength(10);
+    expect(cards.map((card) => card.getAttribute('aria-pressed'))).toEqual([
+      'true', 'false', 'false', 'false', 'true', 'false', 'false', 'false', 'false', 'false',
+    ]);
+    expect(cards[0].className).toContain('is-chosen');
+    expect(cards[1].className).not.toContain('is-chosen');
+    // A chosen back is still a back. Nothing about it says what it is.
+    expect(cards[0].getAttribute('aria-label')).toBe('第 1 张，背面朝上');
   });
 
   it('reports the place that was touched', () => {
     const onPick = vi.fn();
-    render(<Fan locale="zh" count={10} taken={[]} disabled={false} onPick={onPick} />);
+    render(<Fan locale="zh" count={10} chosen={[]} disabled={false} onPick={onPick} />);
 
     fireEvent.click(backs()[6]);
     expect(onPick).toHaveBeenCalledWith(6);
   });
 
-  it('reports the original place even after earlier ones are gone', () => {
+  it('reports a place the same way whether or not it is already chosen', () => {
     const onPick = vi.fn();
-    render(<Fan locale="zh" count={10} taken={[0, 1]} disabled={false} onPick={onPick} />);
+    render(<Fan locale="zh" count={10} chosen={[2]} disabled={false} onPick={onPick} />);
 
-    fireEvent.click(backs()[0]);
+    // Taking a mark off is the same gesture as putting one on; the component
+    // reports the place and lets the caller decide what that means.
+    fireEvent.click(backs()[2]);
     expect(onPick).toHaveBeenCalledWith(2);
   });
 
   it('ignores touches while the reader speaks, without dropping the visitor out of the spread', () => {
     const onPick = vi.fn();
-    render(<Fan locale="zh" count={10} taken={[]} disabled onPick={onPick} />);
+    render(<Fan locale="zh" count={10} chosen={[]} disabled onPick={onPick} />);
     const card = backs()[3];
 
     fireEvent.click(card);
@@ -79,7 +84,7 @@ describe('the spread', () => {
   });
 
   it('is a single tab stop, walked with the arrow keys', () => {
-    render(<Fan locale="zh" count={10} taken={[]} disabled={false} onPick={noop} />);
+    render(<Fan locale="zh" count={10} chosen={[]} disabled={false} onPick={noop} />);
     const tabbable = () => backs().filter((card) => card.getAttribute('tabindex') === '0');
 
     expect(tabbable()).toHaveLength(1);
@@ -97,7 +102,7 @@ describe('the spread', () => {
   });
 
   it('does not walk off either end', () => {
-    render(<Fan locale="zh" count={3} taken={[]} disabled={false} onPick={noop} />);
+    render(<Fan locale="zh" count={3} chosen={[]} disabled={false} onPick={noop} />);
     const tabbable = () => backs().filter((card) => card.getAttribute('tabindex') === '0')[0];
 
     fireEvent.keyDown(backs()[0], { key: 'ArrowLeft' });
@@ -109,7 +114,7 @@ describe('the spread', () => {
   });
 
   it('labels the places in the visitor’s language', () => {
-    render(<Fan locale="en" count={3} taken={[]} disabled={false} onPick={noop} />);
+    render(<Fan locale="en" count={3} chosen={[]} disabled={false} onPick={noop} />);
     expect(backs()[0].getAttribute('aria-label')).toBe('Card 1, face down');
   });
 });

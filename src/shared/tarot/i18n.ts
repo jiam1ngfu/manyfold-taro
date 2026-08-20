@@ -15,7 +15,7 @@ import type { SlotId } from './types';
 export interface SlotCopy {
   /** Position name, shown above the card. */
   title: string;
-  /** The line spoken while the visitor is choosing this card from the spread. */
+  /** The line spoken as this card is about to turn over. */
   prompt: string;
 }
 
@@ -56,6 +56,10 @@ export interface Copy {
     cardLabel: (n: number) => string;
     /** How many are still to be picked. */
     remaining: (n: number) => string;
+    /** Shown once all three are set aside and only the confirming is left. */
+    chosen: string;
+    /** Closes the picking. Nothing turns over until this is pressed. */
+    confirm: string;
   };
 
   slots: Record<SlotId, SlotCopy>;
@@ -144,6 +148,8 @@ const zh: Copy = {
     spreadLabel: '铺开的牌，全部背面朝上',
     cardLabel: (n) => `第 ${n} 张，背面朝上`,
     remaining: (n) => `还要选 ${n} 张`,
+    chosen: '三张都在了。想换的话，再点一次就放回去。',
+    confirm: '就这三张',
   },
 
   slots: {
@@ -246,6 +252,8 @@ const en: Copy = {
     spreadLabel: 'The spread deck, every card face down',
     cardLabel: (n) => `Card ${n}, face down`,
     remaining: (n) => `${n} still to pick`,
+    chosen: 'All three are set aside. Touch one again to put it back.',
+    confirm: 'These three',
   },
 
   slots: {
