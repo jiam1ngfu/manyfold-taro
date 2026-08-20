@@ -1,8 +1,14 @@
 /**
  * The reading, end to end.
  *
- * Six states, in one direction:
- *   ask → greeting → shuffle → reveal ×3 → reading → outro
+ * Seven states, in one direction:
+ *   ask → greeting → shuffle → choose → reveal ×3 → reading → outro
+ *
+ * Choosing and turning over are two separate rooms, and the visitor is only in
+ * one of them at a time. Over the spread there are no slots and nothing face up —
+ * three backs are set aside, and that is all that happens. Only once the visitor
+ * says "these three" does the spread go away and the three cards turn over, one
+ * after the next, with nothing else on screen.
  *
  * There is no welcome screen: the first thing on the first paint is the question
  * box. Everything else follows from what the visitor does next.
@@ -38,7 +44,7 @@ import {
   streamDiviner,
 } from './api';
 
-type Phase = 'ask' | 'greeting' | 'shuffle' | 'reveal' | 'reading' | 'outro';
+type Phase = 'ask' | 'greeting' | 'shuffle' | 'choose' | 'reveal' | 'reading' | 'outro';
 
 const READING_KEY = 'taro.readingId';
 const LOCALE_KEY = 'taro.locale';
@@ -50,13 +56,21 @@ const SHUFFLE_MS = 2600;
 /** The character count stays out of sight until the limit is actually near. */
 const COUNTER_FROM = 60;
 
+/** A beat before the first card turns, and a longer one between the rest, so the
+ *  three do not land as a single event. */
+const TURN_FIRST_MS = 900;
+const TURN_GAP_MS = 1500;
+
 const phaseFor = (reading: ReadingView): Phase => {
   switch (reading.status) {
     case 'interpreted':
       return 'outro';
     case 'revealed':
-    case 'drawn':
       return 'reveal';
+    // Committed but still face down: either the visitor is over the spread and
+    // has turned nothing yet, or they are already watching the three turn.
+    case 'drawn':
+      return reading.cards.length > 0 ? 'reveal' : 'choose';
     default:
       return 'greeting';
   }
@@ -95,8 +109,8 @@ export default function TarotApp() {
   const [suggestsNew, setSuggestsNew] = useState(false);
   const [demoReader, setDemoReader] = useState(false);
   const [loadingLine, setLoadingLine] = useState(0);
-  /** Which places in the spread the visitor has already touched. Presentation
-   *  only — a place is not a card, and the Worker has already chosen the cards. */
+  /** Which places in the spread the visitor has set aside. Presentation only —
+   *  a place is not a card, and the Worker has already chosen the cards. */
   const [picked, setPicked] = useState<number[]>([]);
 
   /** Rounds are linked only so the reader knows this visitor was just here. */
@@ -105,6 +119,9 @@ export default function TarotApp() {
   const greetedFor = useRef<string | null>(null);
   /** Same guard for the draw, which now fires from a timer rather than a click. */
   const drawnFor = useRef<string | null>(null);
+  /** The card currently turning, as `readingId:index`. The reveal runs off a
+   *  timer, so without this StrictMode would ask for the same card twice. */
+  const turning = useRef<string | null>(null);
   const questionBox = useRef<HTMLTextAreaElement | null>(null);
 
   /* ───────── boot: language, reader, and any round still in progress ───────── */
@@ -136,9 +153,10 @@ export default function TarotApp() {
         setPhase(phaseFor(found));
         if (found.greeting) greetedFor.current = found.readingId;
         if (found.status !== 'greeting') drawnFor.current = found.readingId;
-        // Which places were touched before the reload is not worth storing: a
-        // place is not a card. Take that many off the spread and deal the rest.
-        setPicked(Array.from({ length: found.cards.length }, (_, i) => i));
+        // Which backs were set aside before the reload is not worth storing: a
+        // place is not a card, so re-picking three changes nothing about what
+        // turns over. Anyone who reloads mid-spread simply picks again.
+        setPicked([]);
       })
       .catch(() => {
         // Gone, expired, or someone else's: start clean rather than explain.
@@ -280,7 +298,7 @@ export default function TarotApp() {
           if (cancelled) return;
           setReading(drawn);
           setPicked([]);
-          setPhase('reveal');
+          setPhase('choose');
         })
         .catch((caught: unknown) => {
           if (cancelled) return;
@@ -306,39 +324,89 @@ export default function TarotApp() {
     window.setTimeout(() => setPhase('shuffle'), 0);
   }, []);
 
-  /* ───────── state 4: picking them out of the spread ───────── */
+  /* ───────── state 4: picking three out of the spread ───────── */
 
-  const pick = useCallback(async (position: number) => {
-    if (!reading || busy) return;
+  /**
+   * Marking a back, and unmarking it. Nothing leaves for the Worker here and
+   * nothing turns over — this is the visitor deciding, and until they say they
+   * are done they can change their mind as often as they like.
+   */
+  const choose = useCallback((position: number) => {
+    setPicked((current) => {
+      if (current.includes(position)) return current.filter((place) => place !== position);
+      if (current.length >= SLOT_ORDER.length) return current;
+      return [...current, position];
+    });
+  }, []);
+
+  const confirmPicks = useCallback(() => {
+    if (picked.length < SLOT_ORDER.length) return;
+    setError('');
+    setPhase('reveal');
+  }, [picked]);
+
+  /* ───────── state 5: the three of them, turning over ───────── */
+
+  const turnOver = useCallback(
+    async (index: number) => {
+      if (!reading) return;
+      const key = `${reading.readingId}:${index}`;
+      if (turning.current === key) return;
+      turning.current = key;
+      setBusy(true);
+      setSpoken('');
+      let landed = false;
+      await runTurn(readingPath(reading.readingId, '/reveal'), { index }, (event) => {
+        if (event.type === 'card') {
+          landed = true;
+          setReading((current) => (current ? withCard(current, event.card) : current));
+        } else if (event.type === 'delta') {
+          setSpoken(event.text);
+        } else if (event.type === 'hint') {
+          setSpoken(null);
+          setReading((current) =>
+            current
+              ? {
+                  ...current,
+                  cards: current.cards.map((card) =>
+                    card.index === event.index ? { ...card, hint: event.text } : card,
+                  ),
+                }
+              : current,
+          );
+        } else if (event.type === 'error') setError(event.message);
+      });
+      // A turn that never produced a card has to be askable again.
+      if (!landed) turning.current = null;
+      setSpoken(null);
+      setBusy(false);
+    },
+    [reading, runTurn],
+  );
+
+  /**
+   * The choosing is over by the time this screen exists, so the cards turn
+   * themselves: one, then the next, then the last. Each waits for the reader to
+   * finish speaking about the one before it.
+   */
+  useEffect(() => {
+    if (phase !== 'reveal' || !reading || busy || error) return;
     const index = reading.cards.length;
     if (index >= SLOT_ORDER.length) return;
-    setPicked((current) => (current.includes(position) ? current : [...current, position]));
-    setBusy(true);
-    setSpoken('');
-    await runTurn(readingPath(reading.readingId, '/reveal'), { index }, (event) => {
-      if (event.type === 'card') {
-        setReading((current) => (current ? withCard(current, event.card) : current));
-      } else if (event.type === 'delta') {
-        setSpoken(event.text);
-      } else if (event.type === 'hint') {
-        setSpoken(null);
-        setReading((current) =>
-          current
-            ? {
-                ...current,
-                cards: current.cards.map((card) =>
-                  card.index === event.index ? { ...card, hint: event.text } : card,
-                ),
-              }
-            : current,
-        );
-      } else if (event.type === 'error') setError(event.message);
-    });
-    setSpoken(null);
-    setBusy(false);
-  }, [reading, busy, runTurn]);
+    const timer = window.setTimeout(
+      () => void turnOver(index),
+      index === 0 ? TURN_FIRST_MS : TURN_GAP_MS,
+    );
+    return () => window.clearTimeout(timer);
+  }, [phase, reading, busy, error, turnOver]);
 
-  /* ───────── state 5: the reading ───────── */
+  /** After a turn that failed, this re-arms the sequence where it stopped. */
+  const retryTurn = useCallback(() => {
+    turning.current = null;
+    setError('');
+  }, []);
+
+  /* ───────── state 6: the reading ───────── */
 
   const listen = useCallback(async () => {
     if (!reading || busy) return;
@@ -367,7 +435,7 @@ export default function TarotApp() {
     return () => window.clearInterval(timer);
   }, [phase, copy]);
 
-  /* ───────── state 6: keep going, or start again ───────── */
+  /* ───────── state 7: keep going, or start again ───────── */
 
   const askFollowUp = useCallback(async () => {
     if (!reading || busy) return;
@@ -401,6 +469,7 @@ export default function TarotApp() {
     localStorage.removeItem(READING_KEY);
     greetedFor.current = null;
     drawnFor.current = null;
+    turning.current = null;
     setReading(null);
     setPicked([]);
     setFollowUps([]);
@@ -547,7 +616,43 @@ export default function TarotApp() {
           </section>
         )}
 
-        {/* ── 4 · turning them over ── */}
+        {/* ── 4 · choosing three out of the spread ──
+            The whole deck and nothing else. No slots overhead, no card face up:
+            picking here only sets a back aside. */}
+        {phase === 'choose' && reading && (
+          <section className="taro-choose">
+            <p className="taro-instruction">{copy.shuffle.pick}</p>
+
+            <Fan
+              locale={locale}
+              count={DECK_SIZE}
+              chosen={picked}
+              disabled={false}
+              onPick={choose}
+            />
+
+            <p className="taro-pick-status" role="status">
+              {picked.length < SLOT_ORDER.length ? (
+                <span className="taro-pick-count">
+                  {copy.shuffle.remaining(SLOT_ORDER.length - picked.length)}
+                </span>
+              ) : (
+                copy.shuffle.chosen
+              )}
+            </p>
+
+            <button
+              type="button"
+              className="taro-primary"
+              disabled={picked.length < SLOT_ORDER.length}
+              onClick={confirmPicks}
+            >
+              {copy.shuffle.confirm}
+            </button>
+          </section>
+        )}
+
+        {/* ── 5 · turning them over ── */}
         {(phase === 'reveal' || phase === 'reading' || phase === 'outro') && reading && (
           <section className="taro-spread">
             <div className="taro-cards">
@@ -579,23 +684,16 @@ export default function TarotApp() {
                   </p>
                 )}
 
-                {!allRevealed && nextSlot && (
-                  <>
-                    <p className="taro-instruction">{copy.slots[nextSlot].prompt}</p>
-                    <p className="taro-pick-lead">
-                      {copy.shuffle.pick}{' '}
-                      <span className="taro-pick-count">
-                        {copy.shuffle.remaining(SLOT_ORDER.length - revealedCount)}
-                      </span>
-                    </p>
-                    <Fan
-                      locale={locale}
-                      count={DECK_SIZE}
-                      taken={picked}
-                      disabled={busy}
-                      onPick={(position) => void pick(position)}
-                    />
-                  </>
+                {/* One line for the card that is about to turn, and nothing to
+                    press: the visitor already made every choice they get. */}
+                {!allRevealed && nextSlot && !error && (
+                  <p className="taro-instruction">{copy.slots[nextSlot].prompt}</p>
+                )}
+
+                {!allRevealed && error && (
+                  <button type="button" className="taro-primary" onClick={retryTurn}>
+                    {copy.errors.retry}
+                  </button>
                 )}
 
                 {allRevealed && (
@@ -616,7 +714,7 @@ export default function TarotApp() {
           </section>
         )}
 
-        {/* ── 5 · the reading ── */}
+        {/* ── 6 · the reading ── */}
         {phase === 'reading' && (
           <section className="taro-waiting" aria-live="polite">
             <p className="taro-instruction">{copy.result.loading[loadingLine]}</p>
@@ -624,7 +722,7 @@ export default function TarotApp() {
           </section>
         )}
 
-        {/* ── 6 · what comes after ── */}
+        {/* ── 7 · what comes after ── */}
         {phase === 'outro' && reading?.interpretation && (
           <>
             <Reading
