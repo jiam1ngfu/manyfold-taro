@@ -489,9 +489,13 @@ export default function TarotApp() {
   const revealedCount = reading?.cards.length ?? 0;
   const allRevealed = revealedCount === SLOT_ORDER.length;
   const nextSlot = SLOT_ORDER[revealedCount];
+  /* The two screens the deck owns. Like the opening screen, they are looked at
+     rather than read: they want the width, and they want to be centred against
+     the window rather than against what is left of it. */
+  const atTable = phase === 'shuffle' || phase === 'choose';
 
   return (
-    <div className={phase === 'ask' ? 'taro is-opening' : 'taro'}>
+    <div className={`taro${phase === 'ask' ? ' is-opening' : ''}${atTable ? ' is-table' : ''}`}>
       {/* The only chrome on the page. There is no mark and no name: the first
           thing anyone sees should be the question, not a logo. */}
       <header className="taro-top">
@@ -592,63 +596,68 @@ export default function TarotApp() {
           </section>
         )}
 
-        {/* ── 3 · the shuffle, which needs nothing from the visitor ── */}
-        {phase === 'shuffle' && reading && (
-          <section className="taro-shuffle">
-            <div className="taro-deck" aria-hidden>
-              <span className="taro-deck-card" />
-              <span className="taro-deck-card" />
-              <span className="taro-deck-card" />
-              <span className="taro-deck-card" />
-              <span className="taro-deck-card" />
-            </div>
-            <p className="taro-sr-only" role="status">
-              {copy.shuffle.live}
-            </p>
-            <p className="taro-instruction">
-              {busy ? copy.shuffle.settling : copy.shuffle.instruction}
-            </p>
-            {error && (
-              <button type="button" className="taro-primary" onClick={retryDraw}>
-                {copy.errors.retry}
-              </button>
+        {/* ── 3 · the table: the deck shuffles, then sweeps itself open ──
+            One section for both stages, because to the visitor they are one
+            shot. The deck stays in the middle of the screen throughout, and
+            everything around it holds its place — the picking line and the
+            button are here from the first frame, merely quiet — so nothing on
+            the page moves except the cards. No slots overhead and no card face
+            up: picking here only sets a back aside. */}
+        {(phase === 'shuffle' || phase === 'choose') && reading && (
+          <section className="taro-table">
+            {phase === 'shuffle' && (
+              <p className="taro-sr-only" role="status">
+                {copy.shuffle.live}
+              </p>
             )}
-          </section>
-        )}
 
-        {/* ── 4 · choosing three out of the spread ──
-            The whole deck and nothing else. No slots overhead, no card face up:
-            picking here only sets a back aside. */}
-        {phase === 'choose' && reading && (
-          <section className="taro-choose">
-            <p className="taro-instruction">{copy.shuffle.pick}</p>
+            {/* Keyed on the phase so the line fades through the change rather
+                than swapping under the eye. Two lines of height are held either
+                way, so the deck below it does not shift. */}
+            <p className="taro-instruction taro-table-line" key={phase}>
+              {phase === 'shuffle'
+                ? busy
+                  ? copy.shuffle.settling
+                  : copy.shuffle.instruction
+                : copy.shuffle.pick}
+            </p>
 
             <Fan
               locale={locale}
               count={DECK_SIZE}
               chosen={picked}
-              disabled={false}
+              gathered={phase === 'shuffle'}
+              disabled={phase !== 'choose'}
               onPick={choose}
             />
 
-            <p className="taro-pick-status" role="status">
-              {picked.length < SLOT_ORDER.length ? (
-                <span className="taro-pick-count">
-                  {copy.shuffle.remaining(SLOT_ORDER.length - picked.length)}
-                </span>
-              ) : (
-                copy.shuffle.chosen
-              )}
-            </p>
+            <div className={`taro-table-foot${phase === 'shuffle' ? ' is-quiet' : ''}`}>
+              <p className="taro-pick-status" role="status">
+                {phase === 'choose' &&
+                  (picked.length < SLOT_ORDER.length ? (
+                    <span className="taro-pick-count">
+                      {copy.shuffle.remaining(SLOT_ORDER.length - picked.length)}
+                    </span>
+                  ) : (
+                    copy.shuffle.chosen
+                  ))}
+              </p>
 
-            <button
-              type="button"
-              className="taro-primary"
-              disabled={picked.length < SLOT_ORDER.length}
-              onClick={confirmPicks}
-            >
-              {copy.shuffle.confirm}
-            </button>
+              <button
+                type="button"
+                className="taro-primary"
+                disabled={phase !== 'choose' || picked.length < SLOT_ORDER.length}
+                onClick={confirmPicks}
+              >
+                {copy.shuffle.confirm}
+              </button>
+            </div>
+
+            {error && (
+              <button type="button" className="taro-primary" onClick={retryDraw}>
+                {copy.errors.retry}
+              </button>
+            )}
           </section>
         )}
 
