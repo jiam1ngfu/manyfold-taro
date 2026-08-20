@@ -6,7 +6,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { LOCALES, type Locale } from '../src/shared/tarot/deck';
+import { DECK, LOCALES, type Locale } from '../src/shared/tarot/deck';
 import { COPY, copyFor, normalizeLocale, type Copy } from '../src/shared/tarot/i18n';
 import { SLOT_ORDER } from '../src/shared/tarot/types';
 
@@ -33,15 +33,14 @@ describe('the sentences the spec pinned', () => {
     expect(zh.ask.submit).toBe('交给牌面');
   });
 
-  it('keeps the shuffle instruction and its button word for word', () => {
-    expect(zh.shuffle.instruction).toBe(
-      '暂时放下对答案的猜测。在心里重新想一遍你的问题，准备好时，让牌停下。',
-    );
-    expect(zh.shuffle.stop).toBe('让牌停下');
+  it('asks for nothing during the shuffle but the question itself', () => {
     expect(zh.greeting.start).toBe('开始占卜');
+    expect(zh.shuffle.instruction).toContain('在心里重新想一遍你的问题');
+    // The deck now stops on its own, so there is no longer anything to press.
+    expect(zh.shuffle.instruction).not.toContain('让牌停下');
   });
 
-  it('names the three positions, their lines and their buttons', () => {
+  it('names the three positions and their lines', () => {
     expect(zh.slots.situation.title).toBe('此刻的处境');
     expect(zh.slots.hidden.title).toBe('隐藏的影响');
     expect(zh.slots.guidance.title).toBe('接下来的指引');
@@ -49,10 +48,6 @@ describe('the sentences the spec pinned', () => {
     expect(zh.slots.situation.prompt).toBe('第一张，照见你此刻所处的位置。');
     expect(zh.slots.hidden.prompt).toBe('第二张，揭示尚未被你看清的影响。');
     expect(zh.slots.guidance.prompt).toBe('最后一张，指向你接下来可以采取的行动。');
-
-    expect(zh.slots.situation.button).toBe('揭开第一张牌');
-    expect(zh.slots.hidden.button).toBe('揭开第二张牌');
-    expect(zh.slots.guidance.button).toBe('揭开最后一张牌');
   });
 
   it('closes the reveal and opens the reading with the given lines', () => {
@@ -108,6 +103,36 @@ describe('the machine never speaks', () => {
   });
 });
 
+describe('picking from the spread', () => {
+  it('invites the visitor to pick, without pretending they are choosing a card', () => {
+    expect(copyFor('zh').shuffle.pick).toBe('牌已经铺开了。不要挑，让手替你选。');
+    expect(copyFor('zh').shuffle.settling).toBe('牌正在落定……');
+  });
+
+  it('names a face-down card by its place and nothing else', () => {
+    for (const locale of LOCALES) {
+      const copy = copyFor(locale);
+      expect(copy.shuffle.spreadLabel, locale).toMatch(/背面朝上|face down/);
+
+      const label = copy.shuffle.cardLabel(12);
+      expect(label, locale).toContain('12');
+      // A place in the spread is not a card. If a label could carry a name or an
+      // orientation, the browser would be deciding something it must not decide.
+      for (const card of DECK) {
+        expect(label, `${locale} leaks ${card.id}`).not.toContain(card.name[locale]);
+      }
+      expect(label, locale).not.toContain(copy.reveal.upright);
+      expect(label, locale).not.toContain(copy.reveal.reversed);
+    }
+  });
+
+  it('counts down how many are still to be picked', () => {
+    for (const locale of LOCALES) {
+      expect(copyFor(locale).shuffle.remaining(3), locale).toContain('3');
+    }
+  });
+});
+
 describe('two languages, one shape', () => {
   it('translates every single string', () => {
     expect(shapeOf(COPY.en)).toEqual(shapeOf(COPY.zh));
@@ -135,7 +160,6 @@ describe('two languages, one shape', () => {
         const copy = copyFor(locale).slots[slot];
         expect(copy.title.trim(), `${locale}.${slot}`).not.toBe('');
         expect(copy.prompt.trim(), `${locale}.${slot}`).not.toBe('');
-        expect(copy.button.trim(), `${locale}.${slot}`).not.toBe('');
       }
     }
   });

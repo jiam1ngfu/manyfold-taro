@@ -14,7 +14,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { Locale } from '../../shared/tarot/deck';
+import { DECK_SIZE, type Locale } from '../../shared/tarot/deck';
 import { copyFor, normalizeLocale } from '../../shared/tarot/i18n';
 import {
   FOLLOW_UP_MAX_CHARS,
@@ -25,6 +25,7 @@ import {
   type ReadingView,
 } from '../../shared/tarot/types';
 import CardSlot from './Card';
+import Fan from './Fan';
 import Reading, { Prose } from './Reading';
 import ShareBox from './ShareBox';
 import {
@@ -41,6 +42,10 @@ type Phase = 'ask' | 'greeting' | 'shuffle' | 'reveal' | 'reading' | 'outro';
 
 const READING_KEY = 'taro.readingId';
 const LOCALE_KEY = 'taro.locale';
+
+/** How long the deck shuffles before it is spread out. Long enough to feel like
+ *  a ritual, short enough that nobody reaches for the tab bar. */
+const SHUFFLE_MS = 2600;
 
 const phaseFor = (reading: ReadingView): Phase => {
   switch (reading.status) {
@@ -87,11 +92,16 @@ export default function TarotApp() {
   const [suggestsNew, setSuggestsNew] = useState(false);
   const [demoReader, setDemoReader] = useState(false);
   const [loadingLine, setLoadingLine] = useState(0);
+  /** Which places in the spread the visitor has already touched. Presentation
+   *  only — a place is not a card, and the Worker has already chosen the cards. */
+  const [picked, setPicked] = useState<number[]>([]);
 
   /** Rounds are linked only so the reader knows this visitor was just here. */
   const previousReadingId = useRef<string | null>(null);
   /** Guards the greeting stream against a double start (StrictMode, fast clicks). */
   const greetedFor = useRef<string | null>(null);
+  /** Same guard for the draw, which now fires from a timer rather than a click. */
+  const drawnFor = useRef<string | null>(null);
   const questionBox = useRef<HTMLTextAreaElement | null>(null);
 
   /* ───────── boot: language, reader, and any round still in progress ───────── */
@@ -120,6 +130,10 @@ export default function TarotApp() {
         setLocale(found.locale);
         setPhase(phaseFor(found));
         if (found.greeting) greetedFor.current = found.readingId;
+        if (found.status !== 'greeting') drawnFor.current = found.readingId;
+        // Which places were touched before the reload is not worth storing: a
+        // place is not a card. Take that many off the spread and deal the rest.
+        setPicked(Array.from({ length: found.cards.length }, (_, i) => i));
       })
       .catch(() => {
         // Gone, expired, or someone else's: start clean rather than explain.
@@ -228,29 +242,60 @@ export default function TarotApp() {
     void submitQuestion();
   };
 
-  /* ───────── state 3: the shuffle ───────── */
+  /* ───────── state 3: the shuffle, which runs itself ───────── */
 
-  const stopTheCards = useCallback(async () => {
-    if (!reading || busy) return;
-    setBusy(true);
+  /**
+   * The deck shuffles for a few seconds and then the Worker commits three cards —
+   * no button, because there is nothing here for the visitor to decide. The
+   * choosing happens next, over the spread, and it is the moment they choose
+   * rather than the card: all three are already sealed on the server by the time
+   * a single back is on screen.
+   */
+  useEffect(() => {
+    if (phase !== 'shuffle' || !reading) return;
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      if (drawnFor.current === reading.readingId) return;
+      drawnFor.current = reading.readingId;
+      setBusy(true);
+      void stopShuffle(reading.readingId)
+        .then(({ reading: drawn }) => {
+          if (cancelled) return;
+          setReading(drawn);
+          setPicked([]);
+          setPhase('reveal');
+        })
+        .catch((caught: unknown) => {
+          if (cancelled) return;
+          // Re-arm, so the retry below is a real second attempt.
+          drawnFor.current = null;
+          setError(errorText(caught, copy.errors.generic));
+        })
+        .finally(() => {
+          if (!cancelled) setBusy(false);
+        });
+    }, SHUFFLE_MS);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [phase, reading, copy]);
+
+  /** After a failed draw the deck is still on screen; this deals it again. */
+  const retryDraw = useCallback(() => {
     setError('');
-    try {
-      const { reading: drawn } = await stopShuffle(reading.readingId);
-      setReading(drawn);
-      setPhase('reveal');
-    } catch (caught) {
-      setError(errorText(caught, copy.errors.generic));
-    } finally {
-      setBusy(false);
-    }
-  }, [reading, busy, copy]);
+    setPhase('greeting');
+    window.setTimeout(() => setPhase('shuffle'), 0);
+  }, []);
 
-  /* ───────── state 4: turning them over ───────── */
+  /* ───────── state 4: picking them out of the spread ───────── */
 
-  const revealNext = useCallback(async () => {
+  const pick = useCallback(async (position: number) => {
     if (!reading || busy) return;
     const index = reading.cards.length;
     if (index >= SLOT_ORDER.length) return;
+    setPicked((current) => (current.includes(position) ? current : [...current, position]));
     setBusy(true);
     setSpoken('');
     await runTurn(readingPath(reading.readingId, '/reveal'), { index }, (event) => {
@@ -338,7 +383,9 @@ export default function TarotApp() {
     previousReadingId.current = reading?.readingId ?? null;
     localStorage.removeItem(READING_KEY);
     greetedFor.current = null;
+    drawnFor.current = null;
     setReading(null);
+    setPicked([]);
     setFollowUps([]);
     setFollowDraft('');
     setFollowOpen(false);
@@ -456,7 +503,7 @@ export default function TarotApp() {
           </section>
         )}
 
-        {/* ── 3 · the shuffle ── */}
+        {/* ── 3 · the shuffle, which needs nothing from the visitor ── */}
         {phase === 'shuffle' && reading && (
           <section className="taro-shuffle">
             <div className="taro-deck" aria-hidden>
@@ -469,10 +516,14 @@ export default function TarotApp() {
             <p className="taro-sr-only" role="status">
               {copy.shuffle.live}
             </p>
-            <p className="taro-instruction">{copy.shuffle.instruction}</p>
-            <button type="button" className="taro-primary" disabled={busy} onClick={() => void stopTheCards()}>
-              {busy ? copy.shuffle.stopping : copy.shuffle.stop}
-            </button>
+            <p className="taro-instruction">
+              {busy ? copy.shuffle.settling : copy.shuffle.instruction}
+            </p>
+            {error && (
+              <button type="button" className="taro-primary" onClick={retryDraw}>
+                {copy.errors.retry}
+              </button>
+            )}
           </section>
         )}
 
@@ -511,14 +562,19 @@ export default function TarotApp() {
                 {!allRevealed && nextSlot && (
                   <>
                     <p className="taro-instruction">{copy.slots[nextSlot].prompt}</p>
-                    <button
-                      type="button"
-                      className="taro-primary"
+                    <p className="taro-pick-lead">
+                      {copy.shuffle.pick}{' '}
+                      <span className="taro-pick-count">
+                        {copy.shuffle.remaining(SLOT_ORDER.length - revealedCount)}
+                      </span>
+                    </p>
+                    <Fan
+                      locale={locale}
+                      count={DECK_SIZE}
+                      taken={picked}
                       disabled={busy}
-                      onClick={() => void revealNext()}
-                    >
-                      {copy.slots[nextSlot].button}
-                    </button>
+                      onPick={(position) => void pick(position)}
+                    />
                   </>
                 )}
 

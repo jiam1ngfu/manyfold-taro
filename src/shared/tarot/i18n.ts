@@ -15,10 +15,8 @@ import type { SlotId } from './types';
 export interface SlotCopy {
   /** Position name, shown above the card. */
   title: string;
-  /** The line spoken before this card is turned over. */
+  /** The line spoken while the visitor is choosing this card from the spread. */
   prompt: string;
-  /** The button that turns it over. */
-  button: string;
 }
 
 export interface Copy {
@@ -44,11 +42,20 @@ export interface Copy {
   };
 
   shuffle: {
+    /** Shown while the deck is in motion, before it is spread out. */
     instruction: string;
-    stop: string;
-    stopping: string;
     /** Announced to screen readers while the deck is in motion. */
     live: string;
+    /** While the Worker is committing the three cards. */
+    settling: string;
+    /** Shown over the spread deck, once the visitor may pick from it. */
+    pick: string;
+    /** Accessible name of the spread itself. */
+    spreadLabel: string;
+    /** Accessible name of one face-down card in the spread. */
+    cardLabel: (n: number) => string;
+    /** How many are still to be picked. */
+    remaining: (n: number) => string;
   };
 
   slots: Record<SlotId, SlotCopy>;
@@ -131,27 +138,27 @@ const zh: Copy = {
   },
 
   shuffle: {
-    instruction: '暂时放下对答案的猜测。在心里重新想一遍你的问题，准备好时，让牌停下。',
-    stop: '让牌停下',
-    stopping: '牌正在落定……',
+    instruction: '暂时放下对答案的猜测。在心里重新想一遍你的问题，牌正在为你洗动。',
     live: '牌正在洗动。',
+    settling: '牌正在落定……',
+    pick: '牌已经铺开了。不要挑，让手替你选。',
+    spreadLabel: '铺开的牌，全部背面朝上',
+    cardLabel: (n) => `第 ${n} 张，背面朝上`,
+    remaining: (n) => `还要选 ${n} 张`,
   },
 
   slots: {
     situation: {
       title: '此刻的处境',
       prompt: '第一张，照见你此刻所处的位置。',
-      button: '揭开第一张牌',
     },
     hidden: {
       title: '隐藏的影响',
       prompt: '第二张，揭示尚未被你看清的影响。',
-      button: '揭开第二张牌',
     },
     guidance: {
       title: '接下来的指引',
       prompt: '最后一张，指向你接下来可以采取的行动。',
-      button: '揭开最后一张牌',
     },
   },
 
@@ -234,27 +241,27 @@ const en: Copy = {
 
   shuffle: {
     instruction:
-      'Set your guesses about the answer aside. Hold your question once more, and when you are ready, stop the cards.',
-    stop: 'Stop the cards',
-    stopping: 'The cards are settling…',
+      'Set your guesses about the answer aside. Hold your question once more while the deck moves.',
     live: 'The deck is shuffling.',
+    settling: 'The cards are settling…',
+    pick: 'The deck is spread out. Do not choose — let your hand choose.',
+    spreadLabel: 'The spread deck, every card face down',
+    cardLabel: (n) => `Card ${n}, face down`,
+    remaining: (n) => `${n} still to pick`,
   },
 
   slots: {
     situation: {
       title: 'Where you stand',
       prompt: 'The first card shows the place you are standing in right now.',
-      button: 'Turn over the first card',
     },
     hidden: {
       title: 'The hidden influence',
       prompt: 'The second card reveals what has been shaping this out of your sight.',
-      button: 'Turn over the second card',
     },
     guidance: {
       title: 'What comes next',
       prompt: 'The last card points to what you can actually do from here.',
-      button: 'Turn over the last card',
     },
   },
 
