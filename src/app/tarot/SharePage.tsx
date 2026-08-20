@@ -33,7 +33,7 @@ export default function SharePage() {
 
   useEffect(() => {
     document.documentElement.lang = locale === 'zh' ? 'zh-Hans' : 'en';
-    document.title = `${copy.share.viewTitle} · ${copy.brand}`;
+    document.title = copy.share.viewTitle;
   }, [locale, copy]);
 
   if (missing) {

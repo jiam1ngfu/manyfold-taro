@@ -1,31 +1,63 @@
 /* The reading room.
+
+   One surface: black. One voice: warm off-white standing on it. Colour is spent
+   only where the eye has to be told something — the caret, the line under the
+   field you are typing in, the mark on a card — and never as decoration.
+
+   Two rules of alignment, and they do not overlap:
+     · everything the visitor looks at or presses is centred;
+     · long prose — the reading, the thread — is a left-aligned column, because
+       a wall of centred text cannot be read.
+
    Scoped under .taro so the operator console at /console keeps its own look.
-   Every animation here is decoration: with prefers-reduced-motion the same
-   states are still reached, still labelled, and still readable. */
+   Every animation here is ornament: with prefers-reduced-motion the same states
+   are still reached, still labelled, and still readable. */
 
 html[data-app='taro'],
 html[data-app='taro'] body {
-  background: #0a0912;
-  color: #ece7f5;
+  background: #000;
+  color: #e9e6e0;
 }
 
 .taro {
-  --ink: #ece7f5;
-  --dim: #9a92b5;
-  --gold: #d9b26a;
-  --edge: #241f36;
-  --panel: #14111f;
-  --panel-soft: #191527;
+  --ink: #e9e6e0;
+  --ink-2: #8d8981;
+  --ink-3: #575450;
+  --ink-4: #35322f;
+  --line: rgba(255, 255, 255, 0.08);
+  --line-strong: rgba(255, 255, 255, 0.2);
+  /* The one warm note in the file. Never at full strength. */
+  --bone: #c8b189;
 
+  --serif: 'Noto Serif SC', 'Songti SC', Georgia, 'Times New Roman', serif;
+  --sans: ui-sans-serif, -apple-system, 'PingFang SC', 'Helvetica Neue', Arial, sans-serif;
+
+  /* Reading measure. Long prose never grows past this, whatever the window does. */
+  --column: 34em;
+
+  position: relative;
   min-height: 100vh;
+  min-height: 100svh;
   display: flex;
   flex-direction: column;
   color: var(--ink);
-  font: 16px/1.75 'Noto Serif SC', 'Songti SC', Georgia, 'Times New Roman', serif;
+  font: 16px/1.85 var(--serif);
+  text-align: center;
   background:
-    radial-gradient(1100px 620px at 50% -10%, rgba(120, 92, 190, 0.28), transparent 65%),
-    radial-gradient(760px 460px at 12% 108%, rgba(60, 96, 170, 0.2), transparent 70%),
-    #0a0912;
+    radial-gradient(76vw 54vh at 50% 34%, rgba(200, 177, 137, 0.05), transparent 68%),
+    #000;
+}
+
+/* A film of grain over the black, so the background reads as a surface rather
+   than as an absence. Never intercepts a pointer. */
+.taro::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 .taro *,
@@ -34,205 +66,288 @@ html[data-app='taro'] body {
   box-sizing: border-box;
 }
 
+.taro :focus-visible {
+  outline: 1px solid var(--line-strong);
+  outline-offset: 6px;
+}
+
+/* A field already says it has focus — the rule under it lights up. A second
+   rectangle around it would be the one box on the page. */
+.taro textarea:focus-visible,
+.taro input.taro-share-url:focus-visible {
+  outline: none;
+}
+
 /* ── frame ── */
 
+/* The only chrome on the page, and it sits out of the flow so that the first
+   screen is centred against the whole window rather than against what is left
+   of it. */
 .taro-top {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 3;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 18px 20px;
-  max-width: 780px;
-  width: 100%;
-  margin: 0 auto;
-}
-
-.taro-brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  color: var(--dim);
-  text-decoration: none;
-  letter-spacing: 0.16em;
-  font-size: 13px;
-}
-
-.taro-brand-mark {
-  color: var(--gold);
-  font-size: 15px;
+  padding: 18px 22px;
 }
 
 .taro-lang {
   display: inline-flex;
-  gap: 2px;
+  align-items: center;
+  gap: 12px;
 }
 
 .taro-lang button {
   background: none;
-  border: 1px solid transparent;
-  color: var(--dim);
-  font: inherit;
-  font-size: 12px;
-  letter-spacing: 0.08em;
-  padding: 4px 9px;
-  border-radius: 999px;
+  border: 0;
+  padding: 2px 0;
+  font-family: var(--sans);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  color: var(--ink-4);
   cursor: pointer;
+  transition: color 320ms ease;
+}
+
+.taro-lang button:hover {
+  color: var(--ink-2);
 }
 
 .taro-lang button.is-on {
-  border-color: var(--edge);
-  color: var(--ink);
+  color: var(--ink-2);
 }
 
 .taro-stage {
+  position: relative;
+  z-index: 1;
   flex: 1;
   width: 100%;
   max-width: 780px;
   margin: 0 auto;
-  padding: 8px 20px 64px;
+  padding: 0 24px;
   display: flex;
   flex-direction: column;
-  gap: 26px;
+  align-items: center;
+  gap: 34px;
+}
+
+.taro-stage > * {
+  width: 100%;
 }
 
 .taro-foot {
-  max-width: 780px;
+  position: relative;
+  z-index: 1;
   width: 100%;
+  max-width: 780px;
   margin: 0 auto;
-  padding: 22px 20px 34px;
-  text-align: center;
-  color: var(--dim);
-  font-size: 12.5px;
-  letter-spacing: 0.06em;
+  padding: 24px 24px 32px;
+  font-family: var(--sans);
+  color: var(--ink-4);
 }
 
 .taro-foot p {
-  margin: 4px 0;
+  margin: 5px 0;
 }
 
 .taro-signature {
-  color: #6f6890;
+  font-size: 10.5px;
+  letter-spacing: 0.3em;
+  text-indent: 0.3em;
+}
+
+/* On the first screen there is nothing to scroll, so the footer steps out of
+   the flow: the question is then centred against the window itself rather than
+   against whatever is left above the footer. */
+@media (min-height: 560px) {
+  .taro.is-opening .taro-foot {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+  }
 }
 
 .taro-demo {
-  color: var(--gold);
-  opacity: 0.85;
+  max-width: 34em;
+  margin-inline: auto;
+  font-size: 11.5px;
+  line-height: 1.7;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
 }
 
-/* ── buttons ── */
+/* ── buttons ──
+   No fills, no pills, no shadows under a shape. A button here is a word with a
+   rule under it: the rule brightens and widens as the pointer arrives. */
 
 .taro-primary,
 .taro-secondary {
+  position: relative;
+  align-self: center;
   display: inline-block;
-  align-self: flex-start;
-  font: inherit;
-  font-size: 15px;
-  letter-spacing: 0.1em;
-  padding: 13px 30px;
-  border-radius: 999px;
-  cursor: pointer;
+  margin-inline: auto;
+  background: none;
+  border: 0;
+  padding: 11px 4px 13px;
+  font-family: var(--sans);
+  font-size: 13px;
+  letter-spacing: 0.3em;
+  /* letter-spacing hangs a gap off the last glyph; this puts the word back in
+     the middle of its own rule. */
+  text-indent: 0.3em;
   text-decoration: none;
-  transition: transform 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
+  cursor: pointer;
+  transition: color 320ms ease, opacity 320ms ease;
 }
 
 .taro-primary {
-  border: 1px solid rgba(217, 178, 106, 0.55);
-  background: linear-gradient(180deg, rgba(217, 178, 106, 0.22), rgba(217, 178, 106, 0.08));
-  color: #f6ecd7;
-  box-shadow: 0 0 0 0 rgba(217, 178, 106, 0.35);
-}
-
-.taro-primary:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 8px 26px -14px rgba(217, 178, 106, 0.9);
+  color: var(--ink);
 }
 
 .taro-secondary {
-  border: 1px solid var(--edge);
-  background: transparent;
+  color: var(--ink-2);
+}
+
+.taro-primary::after,
+.taro-secondary::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 4px;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.26;
+  transform: scaleX(0.88);
+  transition: opacity 380ms ease, transform 380ms cubic-bezier(0.2, 0.75, 0.25, 1);
+}
+
+.taro-primary:hover:not(:disabled)::after,
+.taro-secondary:hover:not(:disabled)::after,
+.taro-primary:focus-visible::after,
+.taro-secondary:focus-visible::after {
+  opacity: 0.7;
+  transform: scaleX(1);
+}
+
+.taro-secondary:hover:not(:disabled) {
   color: var(--ink);
 }
 
 .taro-primary:disabled,
 .taro-secondary:disabled {
-  opacity: 0.42;
+  opacity: 0.26;
   cursor: default;
 }
 
 .taro-link {
   background: none;
-  border: none;
-  padding: 0;
-  font: inherit;
-  font-size: 14px;
-  color: var(--dim);
-  text-decoration: underline;
-  text-underline-offset: 4px;
-  text-decoration-color: rgba(154, 146, 181, 0.4);
+  border: 0;
+  padding: 2px 0;
+  font-family: var(--sans);
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  color: var(--ink-3);
+  border-bottom: 1px solid transparent;
   cursor: pointer;
+  transition: color 320ms ease, border-color 320ms ease;
 }
 
 .taro-link:hover {
-  color: var(--ink);
+  color: var(--ink-2);
+  border-bottom-color: var(--line);
 }
 
-/* ── 1 · the question ── */
+/* ── 1 · the question ──
+   One sentence and one line, held in the middle of the window. Nothing else is
+   on this screen, which is the whole idea. */
 
 .taro-ask {
-  margin-top: 8vh;
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  justify-content: center;
+  align-items: center;
+  /* Symmetrical, so "centred" is true rather than approximately true. */
+  padding: 48px 0;
+  gap: clamp(30px, 7vh, 60px);
 }
 
 .taro-ask-title {
   margin: 0;
-  font-size: clamp(26px, 5vw, 36px);
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  line-height: 1.5;
+  max-width: 22ch;
+  font-size: clamp(23px, 4.2vw, 33px);
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  line-height: 1.7;
+  animation: taro-rise 1500ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
 }
 
 .taro-ask form {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  animation: taro-rise 1500ms 320ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
 }
 
+@keyframes taro-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+.taro-field {
+  width: min(560px, 100%);
+}
+
+/* Not a box — a line. It grows downward as the question does, and it is the
+   only thing on the screen wearing a border. */
 .taro-ask-input,
 .taro-follow-input {
+  display: block;
   width: 100%;
   resize: none;
-  font: inherit;
-  font-size: 18px;
-  line-height: 1.8;
+  overflow: hidden;
+  font: 400 19px/1.9 var(--serif);
+  text-align: center;
   color: var(--ink);
+  caret-color: var(--bone);
   background: transparent;
-  border: none;
-  border-bottom: 1px solid var(--edge);
-  padding: 10px 2px 14px;
+  border: 0;
+  border-bottom: 1px solid var(--line-strong);
+  border-radius: 0;
+  padding: 4px 2px 14px;
   outline: none;
-  transition: border-color 200ms ease;
+  transition: border-color 420ms ease, box-shadow 420ms ease;
 }
 
 .taro-ask-input:focus,
 .taro-follow-input:focus {
-  border-bottom-color: rgba(217, 178, 106, 0.6);
+  border-bottom-color: rgba(200, 177, 137, 0.5);
+  box-shadow: 0 14px 30px -24px rgba(200, 177, 137, 0.95);
 }
 
 .taro-ask-input::placeholder,
 .taro-follow-input::placeholder {
-  color: #4d4767;
+  color: var(--ink-4);
 }
 
+/* Reserved height: the counter appears and disappears without moving the line. */
 .taro-ask-meta {
   display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  color: #5f5980;
-  font-size: 12px;
-  letter-spacing: 0.05em;
-  min-height: 18px;
+  justify-content: center;
+  gap: 16px;
+  min-height: 15px;
+  font-family: var(--sans);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: var(--ink-4);
 }
 
 @media (pointer: coarse) {
@@ -248,46 +363,60 @@ html[data-app='taro'] body {
 .taro-waiting {
   display: flex;
   flex-direction: column;
-  gap: 22px;
-  margin-top: 4vh;
+  align-items: center;
+  gap: 28px;
+  padding-top: clamp(40px, 12vh, 120px);
 }
 
 .taro-asked {
-  margin: 0;
-  color: var(--dim);
+  margin: 0 auto;
+  max-width: 32em;
+  color: var(--ink-3);
   font-size: 14px;
-  border-left: 2px solid var(--edge);
-  padding-left: 14px;
+  line-height: 1.9;
+  letter-spacing: 0.02em;
   white-space: pre-wrap;
 }
 
 .taro-asked-label {
   display: block;
-  font-size: 12px;
-  letter-spacing: 0.14em;
-  color: #5f5980;
-  margin-bottom: 4px;
+  font-family: var(--sans);
+  font-size: 10.5px;
+  letter-spacing: 0.3em;
+  text-indent: 0.3em;
+  color: var(--ink-4);
+  margin-bottom: 10px;
+}
+
+/* One to three sentences, and they are the only thing being said, so they get
+   the size. Still centred: this is a voice, not an essay. */
+.taro-voice,
+.taro-speaking {
+  max-width: 30em;
+  margin-inline: auto;
 }
 
 .taro-voice p,
 .taro-speaking {
-  margin: 0 0 12px;
-  font-size: 19px;
-  line-height: 1.9;
+  margin: 0 0 14px;
+  font-size: clamp(18px, 2.4vw, 21px);
+  line-height: 1.95;
+  letter-spacing: 0.02em;
+  color: var(--ink);
 }
 
-.taro-speaking {
-  color: var(--ink);
+.taro-voice p:last-child {
+  margin-bottom: 0;
 }
 
 .taro-caret {
   display: inline-block;
-  width: 7px;
-  height: 1.05em;
-  margin-left: 4px;
-  vertical-align: -0.16em;
-  background: var(--gold);
-  opacity: 0.75;
+  width: 6px;
+  height: 1em;
+  margin-left: 5px;
+  vertical-align: -0.14em;
+  background: var(--bone);
+  opacity: 0.6;
   animation: taro-blink 1.15s steps(2, start) infinite;
 }
 
@@ -301,7 +430,8 @@ html[data-app='taro'] body {
 
 .taro-deck {
   position: relative;
-  height: 176px;
+  height: 190px;
+  width: 100%;
   display: grid;
   place-items: center;
 }
@@ -310,10 +440,10 @@ html[data-app='taro'] body {
   position: absolute;
   width: 92px;
   height: 148px;
-  border-radius: 9px;
-  border: 1px solid rgba(217, 178, 106, 0.32);
-  background: linear-gradient(160deg, #221b39, #14111f 60%);
-  box-shadow: 0 18px 34px -22px #000;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  background: linear-gradient(160deg, #131313, #060606 62%);
+  box-shadow: 0 26px 44px -28px #000;
   animation: taro-shuffle 3.2s ease-in-out infinite;
 }
 
@@ -350,10 +480,12 @@ html[data-app='taro'] body {
 }
 
 .taro-instruction {
-  margin: 0;
-  font-size: 18px;
-  line-height: 1.95;
-  color: #d6cfe8;
+  margin: 0 auto;
+  max-width: 30em;
+  font-size: 17px;
+  line-height: 2;
+  letter-spacing: 0.03em;
+  color: var(--ink-2);
 }
 
 /* ── 4 · the spread ── */
@@ -361,23 +493,31 @@ html[data-app='taro'] body {
 .taro-spread {
   display: flex;
   flex-direction: column;
-  gap: 26px;
+  align-items: center;
+  gap: 30px;
+  padding-top: clamp(24px, 6vh, 60px);
 }
 
+/* Same measure as the reading below it, so the three cards and the paragraphs
+   share one pair of edges down the whole page. */
 .taro-cards {
+  width: min(var(--column), 100%);
+  margin-inline: auto;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
+  gap: 16px;
 }
 
 .taro-slot {
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   align-items: center;
-  text-align: center;
 }
+
+/* The cards themselves are placeholders — kept structural and quiet so that
+   dropping real art in later changes the picture and nothing else. */
 
 .taro-card {
   width: 100%;
@@ -390,7 +530,7 @@ html[data-app='taro'] body {
   width: 100%;
   height: 100%;
   transform-style: preserve-3d;
-  transition: transform 760ms cubic-bezier(0.2, 0.75, 0.25, 1);
+  transition: transform 820ms cubic-bezier(0.2, 0.75, 0.25, 1);
 }
 
 .taro-card.is-up .taro-card-inner {
@@ -410,7 +550,7 @@ html[data-app='taro'] body {
 .taro-card-face {
   position: absolute;
   inset: 0;
-  border-radius: 10px;
+  border-radius: 8px;
   backface-visibility: hidden;
   display: grid;
   place-items: center;
@@ -418,28 +558,28 @@ html[data-app='taro'] body {
 }
 
 .taro-card-back {
-  border: 1px solid rgba(217, 178, 106, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   background:
-    repeating-linear-gradient(45deg, rgba(217, 178, 106, 0.07) 0 6px, transparent 6px 12px),
-    linear-gradient(160deg, #241d3d, #14111f 65%);
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.028) 0 6px, transparent 6px 12px),
+    linear-gradient(160deg, #141414, #070707 65%);
 }
 
 .taro-card-back-mark {
-  color: rgba(217, 178, 106, 0.55);
-  font-size: 24px;
+  color: rgba(200, 177, 137, 0.35);
+  font-size: 22px;
 }
 
 .taro-card-front {
   transform: rotateY(180deg);
-  border: 1px solid rgba(217, 178, 106, 0.45);
-  background: linear-gradient(170deg, #1d1830, #100d1c 70%);
-  color: var(--gold);
+  border: 1px solid rgba(200, 177, 137, 0.2);
+  background: linear-gradient(170deg, #121110, #070707 70%);
+  color: rgba(200, 177, 137, 0.85);
 }
 
 .taro-card-art {
   width: 100%;
   height: 100%;
-  padding: 10px 8px;
+  padding: 11px 8px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -452,76 +592,99 @@ html[data-app='taro'] body {
 }
 
 .taro-card-mark {
-  font-size: 11px;
-  letter-spacing: 0.16em;
-  opacity: 0.8;
+  font-family: var(--sans);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-indent: 0.22em;
+  opacity: 0.6;
 }
 
 .taro-glyph {
-  width: 54%;
-  max-height: 52%;
-  opacity: 0.92;
+  width: 52%;
+  max-height: 50%;
+  opacity: 0.85;
 }
 
 .taro-card-name {
-  font-size: 12px;
-  letter-spacing: 0.06em;
-  color: #efe3c8;
-  line-height: 1.35;
+  font-size: 11.5px;
+  letter-spacing: 0.05em;
+  line-height: 1.4;
+  color: #e2d6bd;
 }
 
 .taro-slot-caption {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  font-size: 12.5px;
+  gap: 5px;
 }
 
 .taro-slot-title {
-  color: var(--dim);
-  letter-spacing: 0.12em;
+  font-family: var(--sans);
+  font-size: 10px;
+  letter-spacing: 0.26em;
+  text-indent: 0.26em;
+  color: var(--ink-4);
 }
 
 .taro-card-label {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
+  font-size: 13px;
   color: var(--ink);
 }
 
-.taro-card-label.muted {
-  color: #4d4767;
+.taro-card-label strong {
+  font-weight: 500;
+  letter-spacing: 0.03em;
 }
 
+.taro-card-label.muted {
+  color: var(--ink-4);
+  font-size: 12px;
+}
+
+/* Upright and reversed are a fact about the card, not a verdict on it: same
+   ink, one of them quieter. */
 .taro-orient {
-  font-size: 11.5px;
-  letter-spacing: 0.1em;
-  color: #8fb59a;
+  font-family: var(--sans);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-indent: 0.2em;
+  color: var(--ink-3);
 }
 
 .taro-orient.is-reversed {
-  color: #c48a8a;
+  color: var(--bone);
+  opacity: 0.7;
 }
 
 .taro-turn {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  align-items: center;
+  gap: 22px;
+  width: 100%;
 }
 
 .taro-hint {
-  margin: 0;
-  color: #cbc4e0;
+  margin: 0 auto;
+  max-width: 32em;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
   font-size: 15.5px;
-  line-height: 1.85;
+  line-height: 1.9;
+  color: var(--ink-2);
 }
 
 .taro-hint-slot {
-  color: var(--gold);
-  opacity: 0.8;
-  font-size: 12px;
-  letter-spacing: 0.14em;
-  margin-right: 10px;
+  font-family: var(--sans);
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  text-indent: 0.3em;
+  color: var(--ink-4);
 }
 
 /* ── 4b · the spread you pick from ──
@@ -529,17 +692,23 @@ html[data-app='taro'] body {
    like a real sweep; whichever one is under your hand is the one that rises. */
 
 .taro-pick-lead {
-  margin: 0;
+  margin: 0 auto;
+  max-width: 32em;
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 10px;
+  gap: 4px 12px;
   align-items: baseline;
-  font-size: 14.5px;
-  color: #9d95b4;
+  justify-content: center;
+  font-size: 14px;
+  color: var(--ink-3);
 }
 
 .taro-pick-count {
-  color: var(--gold);
+  font-family: var(--sans);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  color: var(--bone);
+  opacity: 0.75;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -549,8 +718,8 @@ html[data-app='taro'] body {
   flex-wrap: wrap;
   justify-content: center;
   /* Room for a card to lift out of the sweep without clipping. */
-  padding: 18px 22px 8px;
-  row-gap: 14px;
+  padding: 20px 22px 10px;
+  row-gap: 16px;
 }
 
 .taro-fan-card {
@@ -561,18 +730,18 @@ html[data-app='taro'] body {
   padding: 0;
   display: grid;
   place-items: center;
-  border: 1px solid rgba(217, 178, 106, 0.28);
-  border-radius: 6px;
-  background: linear-gradient(160deg, #221b39, #14111f 62%);
-  box-shadow: 0 10px 18px -13px #000;
-  color: rgba(217, 178, 106, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 5px;
+  background: linear-gradient(160deg, #141414, #060606 62%);
+  box-shadow: 0 12px 20px -14px #000;
+  color: rgba(200, 177, 137, 0.28);
   cursor: pointer;
   transform: rotate(var(--taro-tilt, 0deg));
   transition:
-    transform 200ms cubic-bezier(0.2, 0.75, 0.25, 1),
-    box-shadow 200ms ease,
-    border-color 200ms ease,
-    color 200ms ease;
+    transform 260ms cubic-bezier(0.2, 0.75, 0.25, 1),
+    box-shadow 260ms ease,
+    border-color 260ms ease,
+    color 260ms ease;
 }
 
 .taro-fan-card:last-child {
@@ -581,19 +750,16 @@ html[data-app='taro'] body {
 
 .taro-fan-card:hover,
 .taro-fan-card:focus-visible {
-  transform: rotate(var(--taro-tilt, 0deg)) translateY(-15px);
-  border-color: rgba(217, 178, 106, 0.7);
-  box-shadow: 0 22px 30px -15px #000;
-  color: var(--gold);
+  transform: rotate(var(--taro-tilt, 0deg)) translateY(-16px);
+  border-color: rgba(200, 177, 137, 0.45);
+  box-shadow: 0 26px 34px -18px #000;
+  color: rgba(200, 177, 137, 0.75);
   outline: none;
   z-index: 2;
 }
 
 .taro-fan-card:focus-visible {
-  border-color: var(--gold);
-  box-shadow:
-    0 0 0 2px rgba(217, 178, 106, 0.5),
-    0 22px 30px -15px #000;
+  border-color: rgba(200, 177, 137, 0.75);
 }
 
 .taro-fan-card:active {
@@ -604,26 +770,30 @@ html[data-app='taro'] body {
    the visitor's place in it is not lost. */
 .taro-fan.is-waiting .taro-fan-card {
   cursor: progress;
-  opacity: 0.62;
+  opacity: 0.5;
 }
 
 .taro-fan.is-waiting .taro-fan-card:hover {
   transform: rotate(var(--taro-tilt, 0deg));
-  box-shadow: 0 10px 18px -13px #000;
-  border-color: rgba(217, 178, 106, 0.28);
-  color: rgba(217, 178, 106, 0.45);
+  box-shadow: 0 12px 20px -14px #000;
+  border-color: rgba(255, 255, 255, 0.1);
+  color: rgba(200, 177, 137, 0.28);
 }
 
 .taro-fan-back {
-  font-size: 12px;
+  font-size: 11px;
   line-height: 1;
 }
 
-/* ── 5 · the reading ── */
+/* ── 5 · the reading ──
+   From here down the page turns into a column and stops being centred: this is
+   the part that is actually read. */
 
 .taro-waiting-bar {
+  width: min(320px, 70%);
+  margin-inline: auto;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(217, 178, 106, 0.75), transparent);
+  background: linear-gradient(90deg, transparent, rgba(233, 230, 224, 0.55), transparent);
   background-size: 220% 100%;
   animation: taro-sweep 2.6s linear infinite;
 }
@@ -638,207 +808,266 @@ html[data-app='taro'] body {
 }
 
 .taro-reading {
+  width: min(var(--column), 100%);
+  margin-inline: auto;
+  text-align: left;
   display: flex;
   flex-direction: column;
-  gap: 22px;
-  border-top: 1px solid var(--edge);
-  padding-top: 26px;
+  gap: 30px;
+  border-top: 1px solid var(--line);
+  padding-top: 36px;
 }
 
 .taro-reading-title {
   margin: 0;
-  font-size: 14px;
+  font-family: var(--sans);
+  font-size: 10.5px;
   font-weight: 400;
-  letter-spacing: 0.2em;
-  color: var(--gold);
+  letter-spacing: 0.34em;
+  text-indent: 0.34em;
+  color: var(--ink-4);
 }
 
 .taro-prose p {
-  margin: 0 0 14px;
+  margin: 0 0 16px;
 }
 
 .taro-prose p:last-child {
   margin-bottom: 0;
 }
 
-.taro-conclusion p,
-.taro-conclusion {
-  font-size: 21px;
-  line-height: 1.85;
-  color: #f3eeff;
+/* The answer, before anything else — and the largest thing on the page. */
+.taro-conclusion,
+.taro-conclusion p {
   margin: 0;
+  font-size: clamp(20px, 2.6vw, 23px);
+  line-height: 1.8;
+  letter-spacing: 0.02em;
+  color: #f3f0ea;
 }
 
 .taro-section h3 {
-  margin: 0 0 8px;
-  font-size: 13px;
+  margin: 0 0 12px;
+  font-family: var(--sans);
+  font-size: 10.5px;
   font-weight: 400;
-  letter-spacing: 0.18em;
-  color: var(--dim);
+  letter-spacing: 0.28em;
+  color: var(--ink-3);
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 6px 14px;
   align-items: baseline;
 }
 
 .taro-section-card {
-  color: var(--gold);
-  letter-spacing: 0.06em;
-  font-size: 12.5px;
+  letter-spacing: 0.1em;
+  font-size: 10.5px;
+  color: var(--bone);
+  opacity: 0.65;
+}
+
+.taro-section p {
+  color: #d9d5cd;
 }
 
 .taro-actions {
   margin: 0;
-  padding-left: 1.3em;
+  padding-left: 1.5em;
+  color: #d9d5cd;
 }
 
 .taro-actions li {
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+}
+
+.taro-actions li::marker {
+  color: var(--ink-4);
+  font-size: 12px;
 }
 
 .taro-reflection {
-  border-left: 2px solid rgba(217, 178, 106, 0.45);
-  padding-left: 16px;
+  border-left: 1px solid var(--line-strong);
+  padding-left: 20px;
 }
 
 .taro-closing {
-  color: var(--dim);
+  color: var(--ink-3);
   font-style: italic;
 }
 
 /* ── 6 · after ── */
 
 .taro-thread {
+  width: min(var(--column), 100%);
+  margin-inline: auto;
+  text-align: left;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  border-top: 1px solid var(--edge);
-  padding-top: 20px;
+  gap: 18px;
+  border-top: 1px solid var(--line);
+  padding-top: 24px;
 }
 
 .taro-said {
   font-size: 16px;
+  color: #d9d5cd;
 }
 
 .taro-said.is-mine {
-  color: var(--dim);
-  border-left: 2px solid var(--edge);
-  padding-left: 14px;
+  color: var(--ink-3);
+  border-left: 1px solid var(--line);
+  padding-left: 16px;
+}
+
+.taro-said .taro-speaking {
+  margin-inline: 0;
+  max-width: none;
+  font-size: 16px;
+  line-height: 1.9;
 }
 
 .taro-suggest {
   margin: 0;
-  color: var(--gold);
-  font-size: 15px;
+  font-size: 14.5px;
+  color: var(--ink-2);
 }
 
 .taro-outro {
+  width: min(var(--column), 100%);
+  margin-inline: auto;
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   align-items: center;
-  gap: 14px;
-  border-top: 1px solid var(--edge);
-  padding-top: 24px;
+  gap: 20px;
+  border-top: 1px solid var(--line);
+  padding-top: 32px;
 }
 
 .taro-follow {
-  flex: 1 1 100%;
+  width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  align-items: center;
+  gap: 14px;
 }
 
 .taro-follow label {
-  color: var(--dim);
-  font-size: 13px;
-  letter-spacing: 0.1em;
+  font-family: var(--sans);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-indent: 0.2em;
+  color: var(--ink-3);
+}
+
+.taro-follow-input {
+  font-size: 17px;
 }
 
 .taro-share {
-  flex: 1 1 100%;
+  width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 16px;
-  border: 1px solid var(--edge);
-  border-radius: 12px;
-  background: var(--panel);
+  align-items: center;
+  gap: 16px;
 }
 
 .taro-share-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 14px;
+  justify-content: center;
+  gap: 10px 22px;
 }
 
 .taro-check {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 9px;
-  font-size: 14px;
-  color: var(--dim);
+  gap: 10px;
+  font-family: var(--sans);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: var(--ink-3);
   cursor: pointer;
 }
 
 .taro-check input {
-  accent-color: var(--gold);
-  width: 16px;
-  height: 16px;
+  accent-color: #6c645a;
+  width: 14px;
+  height: 14px;
 }
 
 .taro-share-url {
-  width: 100%;
-  font: inherit;
-  font-size: 13px;
+  width: min(420px, 100%);
+  font-family: var(--sans);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-align: center;
+  color: var(--ink-2);
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  padding: 8px 4px 10px;
+  outline: none;
+}
+
+.taro-share-url:focus {
+  border-bottom-color: var(--line-strong);
   color: var(--ink);
-  background: var(--panel-soft);
-  border: 1px solid var(--edge);
-  border-radius: 8px;
-  padding: 10px 12px;
 }
 
 /* ── shared view ── */
 
 .taro-shared {
-  gap: 22px;
-  padding-top: 6vh;
+  gap: 30px;
+  padding-top: clamp(48px, 12vh, 110px);
 }
 
 .taro-shared-title {
   margin: 0;
-  font-size: 14px;
+  font-family: var(--sans);
+  font-size: 10.5px;
   font-weight: 400;
-  letter-spacing: 0.24em;
-  color: var(--gold);
+  letter-spacing: 0.34em;
+  text-indent: 0.34em;
+  color: var(--ink-4);
+}
+
+.taro-shared .taro-conclusion {
+  width: min(30em, 100%);
+  margin-inline: auto;
 }
 
 .taro-shared .taro-foot {
-  padding-left: 0;
-  padding-right: 0;
-  text-align: left;
-  border-top: 1px solid var(--edge);
-  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 34px 0 0;
+  border-top: 1px solid var(--line);
+  margin-top: 10px;
 }
 
 .taro-frozen {
-  color: #5f5980;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--ink-4);
 }
 
 .taro-shared .taro-primary {
-  margin-top: 14px;
+  margin-top: 12px;
 }
 
 /* ── misc ── */
 
 .taro-error {
-  margin: 0;
-  padding: 12px 14px;
-  border: 1px solid rgba(196, 138, 138, 0.4);
-  border-radius: 10px;
-  background: rgba(120, 60, 60, 0.14);
-  color: #f0cfcf;
-  font-size: 15px;
+  margin: 0 auto;
+  max-width: 32em;
+  font-family: var(--sans);
+  font-size: 13px;
+  line-height: 1.8;
+  letter-spacing: 0.04em;
+  color: #c69a93;
 }
 
 .taro-sr-only {
@@ -854,14 +1083,18 @@ html[data-app='taro'] body {
 }
 
 @media (max-width: 560px) {
+  .taro-stage {
+    padding: 0 20px;
+  }
+
   .taro-cards {
-    gap: 9px;
+    gap: 10px;
   }
 
   /* A tighter sweep, so the whole deck still fits above the fold on a phone. */
   .taro-fan {
     padding: 16px 8px 6px;
-    row-gap: 11px;
+    row-gap: 12px;
   }
 
   .taro-fan-card {
@@ -871,15 +1104,21 @@ html[data-app='taro'] body {
   }
 
   .taro-card-name {
-    font-size: 10.5px;
+    font-size: 10px;
   }
 
-  .taro-slot-caption {
-    font-size: 11.5px;
+  .taro-card-label {
+    font-size: 12px;
   }
 
-  .taro-ask {
-    margin-top: 5vh;
+  .taro-slot-title {
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-indent: 0.2em;
+  }
+
+  .taro-ask-input {
+    font-size: 18px;
   }
 }
 
