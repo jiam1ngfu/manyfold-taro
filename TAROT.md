@@ -17,8 +17,8 @@ to `/console`. Everything tarot lives in three new directories and one new set o
 | --- | --- | --- |
 | 1 | 提问 | One input, one button. No welcome page, no examples, no spread picker. |
 | 2 | 接住 | The reader answers the question in one to three sentences. Nothing is drawn yet, so nothing may be named. |
-| 3 | 洗牌 | The visitor stops the shuffle whenever they like. **The cards are chosen at that click, on the server.** |
-| 4 | 翻牌 | Three backs, turned over strictly in order, each with its position, orientation and one line. |
+| 3 | 洗牌 | The deck shuffles itself for a few seconds — there is nothing to press. **The server commits three cards** the moment it settles. |
+| 4 | 抽牌 | The whole pack is spread face down. The visitor picks three backs out of it, and each turns over in its position, with its orientation and one line. |
 | 5 | 解读 | One reading of all three cards in eight fixed sections — never three meanings stapled together. |
 | 6 | 收尾 | 分享这次解读 · 再问一件事 · 继续解读这三张牌 |
 
@@ -31,8 +31,13 @@ Reversals are always on. The three cards are always distinct.
 
 - A CSPRNG (`crypto.getRandomValues`) with rejection sampling, so the distribution is flat —
   no modulo bias — and a partial Fisher–Yates for distinctness.
-- The browser never picks a card, an orientation, or a seed. It asks the Worker to stop the
-  shuffle; the Worker answers with what it committed.
+- The browser never picks a card, an orientation, or a seed. It says the shuffle is over; the
+  Worker answers with what it committed.
+- **A place in the spread is not a card.** The three cards are sealed on the server before a
+  single back is on screen, so touching the seventh back rather than the fortieth changes
+  nothing about what turns over — exactly as at a physical table, where the deck is already
+  shuffled and every back is identical. `Fan.tsx` is never told a card id and has no prop
+  through which it could be told one; what the visitor chooses is the moment, not the card.
 - **The reader never picks either.** Every request type in `diviner.ts` carries cards that
   were already drawn. There is no request shape in which a card can be chosen, so the reading
   cannot be steered by the question.
@@ -123,6 +128,7 @@ cannot be asked for the operator password before they are allowed to ask a quest
 | `src/worker/tarot/ratelimit.ts` | Fixed-window meters, per session and per IP |
 | `src/worker/tarot/routes.ts` | `/api/tarot/*` |
 | `src/app/tarot/TarotApp.tsx` | The six states |
+| `src/app/tarot/Fan.tsx` | The spread the visitor picks from. Knows no card ids |
 | `src/app/tarot/SharePage.tsx` | `/s/:token` — reads the snapshot, never the reading |
 
 New tables: `tarot_readings`, `tarot_followups`, `tarot_shares`, `tarot_rate`. They are created
@@ -131,7 +137,7 @@ by `SCHEMA` in `src/worker/db.ts` on the next request, like everything else here
 ## Testing
 
 ```
-npm test                      # 140 tests, including a full-flow run through the real Worker
+npm test                      # 154 tests, including a full-flow run through the real Worker
 npm run check                 # tsc + vite build + wrangler dry-run
 npm run smoke -- <url>        # drives a whole reading against a live deployment
 ```
@@ -140,3 +146,7 @@ npm run smoke -- <url>        # drives a whole reading against a live deployment
 limiter and real SQL included — against a SQLite database standing in for D1. It is the test
 that notices if the flow itself breaks: a card revealed out of order, a stranger reading
 someone else's reading, a share link that quietly follows the reading it came from.
+
+`tests/ui/` runs the two pieces of the draw that only exist in the browser, under jsdom: that
+the shuffle stops itself exactly once with nothing to press, and that the spread never has a
+card id or a card name anywhere in its markup. Everything else stays in the node environment.
