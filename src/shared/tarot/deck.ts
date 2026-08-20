@@ -2,7 +2,7 @@
  * The 78-card deck, bilingual (zh-Hans / en).
  *
  * Shared because both sides need it: the Worker draws from it and builds the
- * diviner's prompt out of it, the browser renders names and glyphs from it.
+ * diviner's prompt out of it, the browser renders names and art from it.
  * Pure data plus pure lookups — no imports, no side effects.
  *
  * Major arcana are written out by hand. Minor arcana are composed from a suit
@@ -20,9 +20,6 @@ export const LOCALES: readonly Locale[] = ['zh', 'en'] as const;
 
 export type Suit = 'wands' | 'cups' | 'swords' | 'pentacles';
 
-/** Glyph key the card face renders; the SVG lives in the app layer. */
-export type CardGlyph = 'star' | 'wands' | 'cups' | 'swords' | 'pentacles';
-
 export interface Localized {
   zh: string;
   en: string;
@@ -36,8 +33,7 @@ export interface TarotCard {
   /** 0–21 for majors, 1–14 for minors (11=Page … 14=King). */
   number: number;
   name: Localized;
-  glyph: CardGlyph;
-  /** Roman numeral for majors, rank mark for minors — drawn on the card face. */
+  /** Roman numeral for majors, rank mark for minors. Printed on the art too. */
   mark: string;
   upright: Localized;
   reversed: Localized;
@@ -451,7 +447,6 @@ function buildDeck(): TarotCard[] {
     arcana: 'major' as const,
     number: index,
     name: { zh: seed.zh, en: seed.en },
-    glyph: 'star' as const,
     mark: ROMAN[index],
     upright: { zh: seed.uz, en: seed.ue },
     reversed: { zh: seed.rz, en: seed.re },
@@ -466,7 +461,6 @@ function buildDeck(): TarotCard[] {
         suit,
         number: rank.n,
         name: minorName(suit, rank),
-        glyph: suit,
         mark: rank.mark,
         upright: {
           zh: `${domain.domainZh}上，${rank.uz}`,
@@ -491,6 +485,25 @@ const BY_ID = new Map(DECK.map((card) => [card.id, card]));
 export function cardById(id: string): TarotCard | null {
   return BY_ID.get(id) ?? null;
 }
+
+/* ───────── the art ─────────
+
+   78 faces and one back, served as static assets from `public/cards/`. Each
+   file is named for the id above, so the deck is its own index and there is no
+   second table to keep in step — a card cannot point at another card's picture.
+   `tests/tarot-art.test.ts` holds the other half of that bargain: every id has
+   a file, and every file has an id.
+
+   The name and the numeral are printed on the art itself, in English. The
+   localized name lives in the caption under the card, not on it. */
+
+/** Where a card's picture is. Absolute, because it is served, not bundled. */
+export function cardArt(id: string): string {
+  return `/cards/${id}.webp`;
+}
+
+/** The one back. Every face-down card in the site is this image. */
+export const CARD_BACK_ART = '/cards/back.webp';
 
 /** Localized card name plus orientation, e.g. `月亮（逆位）` / `The Moon (reversed)`. */
 export function cardLabel(card: TarotCard, reversed: boolean, locale: Locale): string {

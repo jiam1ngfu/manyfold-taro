@@ -32,6 +32,13 @@ html[data-app='taro'] body {
   --serif: 'Noto Serif SC', 'Songti SC', Georgia, 'Times New Roman', serif;
   --sans: ui-sans-serif, -apple-system, 'PingFang SC', 'Helvetica Neue', Arial, sans-serif;
 
+  /* The deck's own proportions and its one back, in one place: every card on the
+     page is cut to this shape, face up or face down, thumbnail or full size. */
+  --card-ratio: 640 / 1109;
+  --card-back: url('/cards/back.webp');
+  /* What a card is before its picture is on it. */
+  --card-stock: linear-gradient(160deg, #141414, #060606 62%);
+
   /* Reading measure. Long prose never grows past this, whatever the window does. */
   --column: 34em;
 
@@ -137,6 +144,14 @@ html[data-app='taro'] body {
   width: 100%;
 }
 
+/* The deck is the one screen that is not a column of prose. Giving it the width
+   costs nothing elsewhere — no other stage changes shape — and it buys the
+   spread three even rows of 26 instead of four ragged ones. */
+.taro.is-table .taro-stage {
+  max-width: 1160px;
+  gap: 0;
+}
+
 .taro-foot {
   position: relative;
   z-index: 1;
@@ -163,6 +178,20 @@ html[data-app='taro'] body {
    against whatever is left above the footer. */
 @media (min-height: 560px) {
   .taro.is-opening .taro-foot {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+  }
+}
+
+/* The deck's two screens are the same case: nothing to scroll, and a table that
+   should sit in the middle of the window rather than in the middle of what is
+   left above a signature. The taller threshold is the deck's — the sweep needs
+   more room than one sentence does, and below this height the footer stays in
+   the flow and takes its share honestly. */
+@media (min-height: 780px) {
+  .taro.is-table .taro-foot {
     position: fixed;
     left: 0;
     right: 0;
@@ -359,7 +388,6 @@ html[data-app='taro'] body {
 /* ── 2 · the reader answers ── */
 
 .taro-greeting,
-.taro-shuffle,
 .taro-waiting {
   display: flex;
   flex-direction: column;
@@ -426,59 +454,6 @@ html[data-app='taro'] body {
   }
 }
 
-/* ── 3 · the shuffle ── */
-
-.taro-deck {
-  position: relative;
-  height: 190px;
-  width: 100%;
-  display: grid;
-  place-items: center;
-}
-
-.taro-deck-card {
-  position: absolute;
-  width: 92px;
-  height: 148px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.13);
-  background: linear-gradient(160deg, #131313, #060606 62%);
-  box-shadow: 0 26px 44px -28px #000;
-  animation: taro-shuffle 3.2s ease-in-out infinite;
-}
-
-.taro-deck-card:nth-child(1) {
-  animation-delay: 0s;
-}
-.taro-deck-card:nth-child(2) {
-  animation-delay: 0.42s;
-}
-.taro-deck-card:nth-child(3) {
-  animation-delay: 0.84s;
-}
-.taro-deck-card:nth-child(4) {
-  animation-delay: 1.26s;
-}
-.taro-deck-card:nth-child(5) {
-  animation-delay: 1.68s;
-}
-
-@keyframes taro-shuffle {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0) rotate(0deg);
-  }
-  25% {
-    transform: translate3d(-52px, -12px, 0) rotate(-7deg);
-  }
-  50% {
-    transform: translate3d(0, -22px, 0) rotate(3deg);
-  }
-  75% {
-    transform: translate3d(52px, -10px, 0) rotate(8deg);
-  }
-}
-
 .taro-instruction {
   margin: 0 auto;
   max-width: 30em;
@@ -516,12 +491,14 @@ html[data-app='taro'] body {
   align-items: center;
 }
 
-/* The cards themselves are placeholders — kept structural and quiet so that
-   dropping real art in later changes the picture and nothing else. */
+/* The art arrived. The deck is engraved blue-on-white and carries its own frame,
+   numeral and name, so the page adds nothing to it: no border around a picture
+   that already has one, no label over a card that is already labelled. The
+   card's own aspect ratio is the frame's aspect ratio. */
 
 .taro-card {
   width: 100%;
-  aspect-ratio: 62 / 100;
+  aspect-ratio: var(--card-ratio);
   perspective: 900px;
 }
 
@@ -558,58 +535,38 @@ html[data-app='taro'] body {
 }
 
 .taro-card-back {
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background:
-    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.028) 0 6px, transparent 6px 12px),
-    linear-gradient(160deg, #141414, #070707 65%);
-}
-
-.taro-card-back-mark {
-  color: rgba(200, 177, 137, 0.35);
-  font-size: 22px;
+  background: var(--card-back) center / cover no-repeat, var(--card-stock);
 }
 
 .taro-card-front {
   transform: rotateY(180deg);
-  border: 1px solid rgba(200, 177, 137, 0.2);
-  background: linear-gradient(170deg, #121110, #070707 70%);
-  color: rgba(200, 177, 137, 0.85);
+  /* The stock shows while the picture is still on the wire, so a card on a slow
+     connection turns over dark rather than blank. */
+  background: var(--card-stock);
 }
 
 .taro-card-art {
   width: 100%;
   height: 100%;
-  padding: 11px 8px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
 }
 
+/* A reversed card is this card, turned around. Rotating the picture is not an
+   effect here — it is the whole difference between the two readings. */
 .taro-card-art.is-reversed {
   transform: rotate(180deg);
 }
 
-.taro-card-mark {
-  font-family: var(--sans);
-  font-size: 10px;
-  letter-spacing: 0.22em;
-  text-indent: 0.22em;
-  opacity: 0.6;
+.taro-card-photo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 420ms ease;
 }
 
-.taro-glyph {
-  width: 52%;
-  max-height: 50%;
-  opacity: 0.85;
-}
-
-.taro-card-name {
-  font-size: 11.5px;
-  letter-spacing: 0.05em;
-  line-height: 1.4;
-  color: #e2d6bd;
+.taro-card-photo.is-loaded {
+  opacity: 1;
 }
 
 .taro-slot-caption {
@@ -687,20 +644,67 @@ html[data-app='taro'] body {
   color: var(--ink-4);
 }
 
-/* ── 4b · the spread you pick from ──
-   Every card in the deck, face down, swept across the table, and nothing else on
-   the screen. The backs overlap like a real sweep; whichever one is under your
-   hand is the one that rises, and the three you set aside stay risen. */
+/* ── 4b · the table: the deck shuffling, then swept open ──
+   Every card in the deck, face down, and nothing else on the screen. First
+   they are a stack; then they are a sweep. The backs overlap like a real
+   sweep; whichever one is under your hand is the one that rises, and the three
+   you set aside stay risen.
 
-.taro-choose {
+   The two stages are one box, deliberately. The sweep's full height is held
+   from the first frame — the stack is the same cards translated into the
+   middle of it, not a smaller thing that grows — and the line above and the
+   button below are present throughout. So the table is centred in the window
+   once, and stays centred: across the whole shuffle and the whole sweep,
+   nothing on this screen moves except the cards. */
+
+.taro-table {
   flex: 1;
   width: 100%;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  gap: clamp(24px, 5vh, 46px);
-  padding: 40px 0;
+  gap: clamp(20px, 4vh, 40px);
+  padding: 32px 0;
+}
+
+/* Two lines of height whatever the sentence is, so that trading the shuffle's
+   line for the picking one cannot shift the deck under it. */
+.taro-table-line {
+  min-height: 4em;
+  animation: taro-line-in 760ms ease both;
+}
+
+@keyframes taro-line-in {
+  from {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Here from the first frame and merely silent, so the deck sits at the same
+   height before and after the sweep. `visibility`, not `display`: the space is
+   kept, and a hidden button is neither focusable nor announced. It arrives late
+   — after the last card has landed — because a button under a deck that is
+   still opening is a button nobody has a reason to look at yet. */
+.taro-table-foot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(18px, 3vh, 30px);
+  transition:
+    opacity 560ms ease 420ms,
+    visibility 0ms;
+}
+
+.taro-table-foot.is-quiet {
+  opacity: 0;
+  visibility: hidden;
+  transition-delay: 0ms;
 }
 
 .taro-pick-status {
@@ -723,56 +727,89 @@ html[data-app='taro'] body {
 }
 
 .taro-fan {
+  /* One back, and the step from it to the next. Everything else about the
+     sweep — how wide it is, how far the backs overlap, where the stack sits
+     before it opens — is derived from these three. */
+  --card-w: 62px;
+  /* Cut to the same proportions as the art, so a back in the sweep and the card
+     it turns into are one shape. */
+  --card-h: calc(var(--card-w) * 1109 / 640);
+  --card-step: 34px;
+  --card-lap: calc(var(--card-w) - var(--card-step));
+  /* How much bigger the deck is than one back in the sweep. Something you are
+     watching being shuffled should read as a deck, not as a chip. */
+  --stack-scale: 2.35;
+
+  position: relative;
+  /* Sized to take exactly 26 backs to a row, so that 78 falls into three even
+     rows instead of two and a stub. Narrower than that it simply wraps more. */
+  width: min(calc(25 * var(--card-step) + var(--card-w)), 100%);
+  margin-inline: auto;
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  /* Room for a card to lift out of the sweep without clipping. */
-  padding: 20px 22px 10px;
-  row-gap: 16px;
+  /* Room above for a back to lift out of the sweep, and the overhang of the
+     last back in each row carried on the right — which is also what keeps the
+     rows optically centred in a box their contents stick out of. */
+  padding: 34px var(--card-lap) 28px 0;
+  row-gap: 18px;
 }
 
+/* The card is only a position and a size. Everything you can see is on the face
+   inside it, so that the riffle during the shuffle and the sweep out of it are
+   two transforms on two elements rather than one fight over one property. */
 .taro-fan-card {
   position: relative;
-  width: 46px;
-  height: 74px;
-  margin-right: -21px;
+  width: var(--card-w);
+  height: var(--card-h);
+  margin-right: calc(-1 * var(--card-lap));
   padding: 0;
-  display: grid;
-  place-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 5px;
-  background: linear-gradient(160deg, #141414, #060606 62%);
-  box-shadow: 0 12px 20px -14px #000;
-  color: rgba(200, 177, 137, 0.28);
+  border: 0;
+  background: none;
   cursor: pointer;
   transform: rotate(var(--taro-tilt, 0deg));
-  transition:
-    transform 260ms cubic-bezier(0.2, 0.75, 0.25, 1),
-    box-shadow 260ms ease,
-    border-color 260ms ease,
-    color 260ms ease;
+  transition: transform 260ms cubic-bezier(0.2, 0.75, 0.25, 1);
 }
 
-.taro-fan-card:last-child {
-  margin-right: 0;
+/* All 78 backs are one image — a background rather than 78 more elements, and
+   one request the browser makes once for the whole sweep. The back is printed
+   with its own white keyline, so nothing here draws a border around it; the
+   corner is rounded in proportion to the card, which keeps the radius honest
+   when the deck is scaled up into a stack. */
+.taro-fan-face {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: calc(var(--card-w) * 0.07);
+  background: var(--card-back) center / cover no-repeat, var(--card-stock);
+  box-shadow: 0 12px 20px -14px #000;
+  transition: box-shadow 260ms ease;
 }
 
 .taro-fan-card:hover,
 .taro-fan-card:focus-visible {
-  transform: rotate(var(--taro-tilt, 0deg)) translateY(-16px);
-  border-color: rgba(200, 177, 137, 0.45);
-  box-shadow: 0 26px 34px -18px #000;
-  color: rgba(200, 177, 137, 0.75);
+  transform: rotate(var(--taro-tilt, 0deg)) translateY(-20px);
   outline: none;
   z-index: 2;
 }
 
-.taro-fan-card:focus-visible {
-  border-color: rgba(200, 177, 137, 0.75);
+/* The lit edge is a ring in the shadow rather than a border, so it can sit
+   outside the art instead of eating a pixel of it. */
+.taro-fan-card:hover .taro-fan-face,
+.taro-fan-card:focus-visible .taro-fan-face {
+  box-shadow:
+    0 0 0 1px rgba(200, 177, 137, 0.5),
+    0 26px 34px -18px #000;
+}
+
+.taro-fan-card:focus-visible .taro-fan-face {
+  box-shadow:
+    0 0 0 1px rgba(200, 177, 137, 0.85),
+    0 26px 34px -18px #000;
 }
 
 .taro-fan-card:active {
-  transform: rotate(var(--taro-tilt, 0deg)) translateY(-9px) scale(0.97);
+  transform: rotate(var(--taro-tilt, 0deg)) translateY(-11px) scale(0.97);
 }
 
 /* Set aside, not turned over. The tilt comes out of it — a card that has been
@@ -780,25 +817,23 @@ html[data-app='taro'] body {
 .taro-fan-card.is-chosen,
 .taro-fan-card.is-chosen:hover,
 .taro-fan-card.is-chosen:focus-visible {
-  transform: rotate(0deg) translateY(-26px);
-  border-color: rgba(200, 177, 137, 0.62);
-  color: var(--bone);
-  box-shadow:
-    0 30px 38px -20px #000,
-    0 0 26px -8px rgba(200, 177, 137, 0.45);
+  transform: rotate(0deg) translateY(-34px);
   z-index: 3;
 }
 
-.taro-fan-card.is-chosen .taro-fan-back {
-  opacity: 0.9;
+.taro-fan-card.is-chosen .taro-fan-face {
+  box-shadow:
+    0 0 0 1px rgba(200, 177, 137, 0.7),
+    0 30px 38px -20px #000,
+    0 0 26px -6px rgba(200, 177, 137, 0.45);
 }
 
 .taro-fan-card.is-chosen::after {
   content: '';
   position: absolute;
   left: 50%;
-  bottom: -13px;
-  width: 16px;
+  bottom: -15px;
+  width: 18px;
   height: 1px;
   transform: translateX(-50%);
   background: var(--bone);
@@ -806,22 +841,99 @@ html[data-app='taro'] body {
 }
 
 /* While the reader is speaking the sweep is inert but stays where it was, so
-   the visitor's place in it is not lost. */
-.taro-fan.is-waiting .taro-fan-card {
+   the visitor's place in it is not lost.
+
+   Every one of these excludes the stack. A shuffling deck is inert too, but it
+   is inert in its own way — it should not be dimmed, and a pointer that happens
+   to be resting where it appears must not pull the top card out of it. Written
+   as :not() rather than left to the cascade because the hover rule below is a
+   pseudo-class more specific than anything the stack can say. */
+.taro-fan.is-waiting:not(.is-gathered) .taro-fan-card {
   cursor: progress;
   opacity: 0.5;
 }
 
-.taro-fan.is-waiting .taro-fan-card:hover {
+.taro-fan.is-waiting:not(.is-gathered) .taro-fan-card:hover {
   transform: rotate(var(--taro-tilt, 0deg));
-  box-shadow: 0 12px 20px -14px #000;
-  border-color: rgba(255, 255, 255, 0.1);
-  color: rgba(200, 177, 137, 0.28);
 }
 
-.taro-fan-back {
-  font-size: 11px;
-  line-height: 1;
+.taro-fan.is-waiting:not(.is-gathered) .taro-fan-card:hover .taro-fan-face {
+  box-shadow: 0 12px 20px -14px #000;
+}
+
+/* The stack takes no notice of the pointer at all. */
+.taro-fan.is-gathered {
+  pointer-events: none;
+}
+
+/* ── the stack ──
+   Every back pulled to the middle of the space the sweep is going to fill, and
+   scaled up into something you can watch. Nothing is hidden and nothing is
+   substituted: what is shuffling here is the same 78 cards that are about to
+   open, which is the only reason the two can be joined by a movement rather
+   than by a cut. */
+.taro-fan.is-gathered .taro-fan-card {
+  transform: translate3d(var(--taro-gx, 0px), var(--taro-gy, 0px), 0)
+    rotate(var(--taro-stack, 0deg)) scale(var(--stack-scale));
+  /* Arriving in the stack is not a move — the deck is stacked from its first
+     frame, with nowhere to have come from. Leaving it is the whole show. */
+  transition: none;
+  cursor: default;
+}
+
+/* Only the top of the deck riffles. The seventy-odd underneath are exactly
+   covered by it, and animating them would be seventy-odd lies at 60fps. */
+.taro-fan.is-gathered .taro-fan-card:nth-last-child(-n + 5) .taro-fan-face {
+  animation: taro-riffle 2.9s cubic-bezier(0.42, 0.02, 0.28, 1) infinite;
+}
+
+.taro-fan.is-gathered .taro-fan-card:nth-last-child(1) .taro-fan-face {
+  animation-delay: 0ms;
+}
+.taro-fan.is-gathered .taro-fan-card:nth-last-child(2) .taro-fan-face {
+  animation-delay: 580ms;
+}
+.taro-fan.is-gathered .taro-fan-card:nth-last-child(3) .taro-fan-face {
+  animation-delay: 1160ms;
+}
+.taro-fan.is-gathered .taro-fan-card:nth-last-child(4) .taro-fan-face {
+  animation-delay: 1740ms;
+}
+.taro-fan.is-gathered .taro-fan-card:nth-last-child(5) .taro-fan-face {
+  animation-delay: 2320ms;
+}
+
+/* Small numbers: the face sits inside a card that is scaled up by
+   --stack-scale, so every one of these is multiplied by it on screen. */
+@keyframes taro-riffle {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  22% {
+    transform: translate3d(-25px, -5px, 0) rotate(-9deg);
+  }
+  48% {
+    transform: translate3d(3px, -12px, 0) rotate(3deg);
+  }
+  72% {
+    transform: translate3d(24px, -4px, 0) rotate(8deg);
+  }
+}
+
+/* ── the sweep ──
+   The stack opening. Each back travels from the middle of the table to the
+   place it was always going to lie, left to right, five milliseconds apart:
+   about a second from the first card leaving the deck to the last one landing,
+   which is roughly how long a hand takes to do it. Nothing is clickable while
+   it is in flight — a card you catch mid-air is not a card you chose. */
+.taro-fan.is-spreading {
+  pointer-events: none;
+}
+
+.taro-fan.is-spreading .taro-fan-card {
+  transition: transform 780ms cubic-bezier(0.19, 0.68, 0.24, 1);
+  transition-delay: calc(var(--taro-i, 0) * 5ms);
 }
 
 /* ── 5 · the reading ──
@@ -1130,20 +1242,19 @@ html[data-app='taro'] body {
     gap: 10px;
   }
 
-  /* A tighter sweep, so the whole deck still fits above the fold on a phone. */
+  .taro-table {
+    padding: 20px 0;
+  }
+
+  /* A tighter sweep, so the whole deck still fits above the fold on a phone —
+     tighter, not smaller. Everything derives from the three numbers, so this is
+     the whole of it: at a phone's width 78 backs fall into six even rows. */
   .taro-fan {
-    padding: 16px 8px 6px;
+    --card-w: 44px;
+    --card-step: 25px;
+    --stack-scale: 2.5;
+    padding: 26px var(--card-lap) 22px 0;
     row-gap: 12px;
-  }
-
-  .taro-fan-card {
-    width: 38px;
-    height: 60px;
-    margin-right: -18px;
-  }
-
-  .taro-card-name {
-    font-size: 10px;
   }
 
   .taro-card-label {
@@ -1176,16 +1287,19 @@ html[data-app='taro'] body {
     display: none;
   }
 
-  .taro-deck-card:nth-child(1) {
-    transform: translate3d(-38px, -8px, 0) rotate(-6deg);
+  /* The riffle stops, so the top of the deck is splayed by hand instead: still
+     a deck being shuffled, just not one that is moving. The sweep out of it
+     becomes a cut, which is what the 1ms above does to it. */
+  .taro-fan.is-gathered .taro-fan-card:nth-last-child(1) .taro-fan-face {
+    transform: translate3d(21px, -4px, 0) rotate(8deg);
   }
-  .taro-deck-card:nth-child(2) {
-    transform: translate3d(-19px, -14px, 0) rotate(-3deg);
+  .taro-fan.is-gathered .taro-fan-card:nth-last-child(2) .taro-fan-face {
+    transform: translate3d(7px, -11px, 0) rotate(3deg);
   }
-  .taro-deck-card:nth-child(4) {
-    transform: translate3d(19px, -14px, 0) rotate(3deg);
+  .taro-fan.is-gathered .taro-fan-card:nth-last-child(3) .taro-fan-face {
+    transform: translate3d(-8px, -10px, 0) rotate(-4deg);
   }
-  .taro-deck-card:nth-child(5) {
-    transform: translate3d(38px, -8px, 0) rotate(6deg);
+  .taro-fan.is-gathered .taro-fan-card:nth-last-child(4) .taro-fan-face {
+    transform: translate3d(-22px, -3px, 0) rotate(-9deg);
   }
 }

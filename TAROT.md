@@ -45,6 +45,25 @@ Reversals are always on. The three cards are always distinct.
   turned over, and `pending` counts the rest.
 - The draw is committed exactly once. Pressing the button twice is the same spread.
 
+## The art
+
+79 lossless WebP files in `public/cards/`, served as Worker static assets: 78 faces named for
+their deck id (`major-00.webp`, `cups-07.webp`, …) and one `back.webp`. The file name *is* the
+index — `cardArt(id)` in `deck.ts` derives the URL and there is no second table to fall out of
+step, so a card cannot point at another card's picture. `tests/tarot-art.test.ts` holds the
+other half: every id has a file, every file has an id, each is a real WebP, and no two faces
+share a hash.
+
+**Backs are surface, faces are content.** The back is a CSS background — one image behind all
+78 cards in the spread and behind every face-down slot — and it is preloaded in `index.html`,
+because it is the first thing anyone sees. Faces are `<img>` elements that do not exist until
+the card is known, and they are deliberately **not** preloaded: the browser is not told what
+was drawn until it turns over, so there is nothing in the network log to read ahead. A reversed
+card is the same picture rotated 180°, which is what a reversed card is.
+
+The card's name and numeral are printed on the art, in English. The localized name is the
+caption under the card, not on it.
+
 ## The reader (Agent 2)
 
 The site talks to one connected Manyfold agent over A2A. Until one is connected it runs its
@@ -117,6 +136,7 @@ cannot be asked for the operator password before they are allowed to ask a quest
 
 | File | Purpose |
 | --- | --- |
+| `public/cards/` | 78 faces and one back, named for their deck ids |
 | `src/shared/tarot/deck.ts` | The 78-card deck, both languages, upright and reversed |
 | `src/shared/tarot/i18n.ts` | Every string the visitor reads, in both languages |
 | `src/shared/tarot/types.ts` | The API surface shared by Worker and browser |
@@ -137,7 +157,7 @@ by `SCHEMA` in `src/worker/db.ts` on the next request, like everything else here
 ## Testing
 
 ```
-npm test                      # 154 tests, including a full-flow run through the real Worker
+npm test                      # 167 tests, including a full-flow run through the real Worker
 npm run check                 # tsc + vite build + wrangler dry-run
 npm run smoke -- <url>        # drives a whole reading against a live deployment
 ```
