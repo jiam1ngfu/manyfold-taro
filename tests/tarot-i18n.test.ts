@@ -30,7 +30,7 @@ describe('the sentences the spec pinned', () => {
 
   it('opens with the question and nothing else', () => {
     expect(zh.ask.title).toBe('把你的问题告诉我。');
-    expect(zh.ask.submit).toBe('交给牌面');
+    expect(zh.ask.submit).toBe('开始');
   });
 
   it('asks for nothing during the shuffle but the question itself', () => {
@@ -90,7 +90,7 @@ describe('the machine never speaks', () => {
   });
 
   it('titles the reading after the cards, not after the model', () => {
-    expect(copyFor('zh').result.title).toBe('牌面为你照见的部分');
+    expect(copyFor('zh').result.title).toBe('为你照见的部分');
     expect(copyFor('en').result.title).toBe('What the cards show you');
   });
 
@@ -182,7 +182,7 @@ describe('normalizeLocale', () => {
 
   it('always returns something copyFor can use', () => {
     const locales: Locale[] = [...LOCALES];
-    for (const locale of locales) expect(copyFor(locale).brand.trim()).not.toBe('');
-    expect(copyFor('de' as Locale).brand).toBe(COPY.zh.brand);
+    for (const locale of locales) expect(copyFor(locale).tagline.trim()).not.toBe('');
+    expect(copyFor('de' as Locale).tagline).toBe(COPY.zh.tagline);
   });
 });

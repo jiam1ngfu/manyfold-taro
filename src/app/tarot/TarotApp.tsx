@@ -47,6 +47,9 @@ const LOCALE_KEY = 'taro.locale';
  *  a ritual, short enough that nobody reaches for the tab bar. */
 const SHUFFLE_MS = 2600;
 
+/** The character count stays out of sight until the limit is actually near. */
+const COUNTER_FROM = 60;
+
 const phaseFor = (reading: ReadingView): Phase => {
   switch (reading.status) {
     case 'interpreted':
@@ -108,7 +111,9 @@ export default function TarotApp() {
 
   useEffect(() => {
     document.documentElement.lang = locale === 'zh' ? 'zh-Hans' : 'en';
-    document.title = `${copy.brand} · ${copy.tagline}`;
+    // The tagline and nothing else: there is no name on this site, so there is
+    // none in the tab either.
+    document.title = copy.tagline;
     localStorage.setItem(LOCALE_KEY, locale);
   }, [locale, copy]);
 
@@ -232,6 +237,18 @@ export default function TarotApp() {
       setBusy(false);
     }
   }, [busy, question, locale, copy, runGreeting]);
+
+  /** The field is a line, not a box: it opens one row high and grows downward
+   *  with the question instead of reserving room for one nobody has written. */
+  const fitQuestionBox = useCallback(() => {
+    const box = questionBox.current;
+    if (!box) return;
+    box.style.height = 'auto';
+    // jsdom reports 0 here; leaving the height alone is the honest fallback.
+    if (box.scrollHeight) box.style.height = `${box.scrollHeight}px`;
+  }, []);
+
+  useEffect(fitQuestionBox, [question, phase, fitQuestionBox]);
 
   const onQuestionKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
     // Enter sends on a physical keyboard. On a touch keyboard Enter is how people
@@ -405,14 +422,10 @@ export default function TarotApp() {
   const nextSlot = SLOT_ORDER[revealedCount];
 
   return (
-    <div className="taro">
+    <div className={phase === 'ask' ? 'taro is-opening' : 'taro'}>
+      {/* The only chrome on the page. There is no mark and no name: the first
+          thing anyone sees should be the question, not a logo. */}
       <header className="taro-top">
-        <a className="taro-brand" href="/" aria-label={copy.brand}>
-          <span className="taro-brand-mark" aria-hidden>
-            ✳
-          </span>
-          <span className="taro-brand-name">{copy.brand}</span>
-        </a>
         <div className="taro-lang" role="group" aria-label={copy.languageLabel}>
           <button
             type="button"
@@ -450,24 +463,31 @@ export default function TarotApp() {
                 void submitQuestion();
               }}
             >
-              <textarea
-                ref={questionBox}
-                className="taro-ask-input"
-                value={question}
-                autoFocus
-                rows={4}
-                maxLength={QUESTION_MAX_CHARS}
-                enterKeyHint="send"
-                placeholder={copy.ask.placeholder}
-                aria-label={copy.ask.title}
-                onChange={(event) => setQuestion(event.target.value)}
-                onKeyDown={onQuestionKeyDown}
-              />
+              <div className="taro-field">
+                <textarea
+                  ref={questionBox}
+                  className="taro-ask-input"
+                  value={question}
+                  autoFocus
+                  rows={1}
+                  maxLength={QUESTION_MAX_CHARS}
+                  enterKeyHint="send"
+                  placeholder={copy.ask.placeholder}
+                  aria-label={copy.ask.title}
+                  onChange={(event) => setQuestion(event.target.value)}
+                  onKeyDown={onQuestionKeyDown}
+                />
+              </div>
+              {/* Nothing under the line until there is something to say about
+                  it, and the row keeps its height either way so the line never
+                  moves while you type. */}
               <div className="taro-ask-meta">
-                <span aria-hidden>{question.length > 0 ? copy.ask.remaining(remaining) : ''}</span>
-                <span className="taro-keyhint" aria-hidden>
-                  {copy.ask.hintKeys}
-                </span>
+                {question.length > 0 && (
+                  <span className="taro-keyhint" aria-hidden>
+                    {copy.ask.hintKeys}
+                  </span>
+                )}
+                {remaining <= COUNTER_FROM && <span aria-hidden>{copy.ask.remaining(remaining)}</span>}
               </div>
               <button
                 type="submit"

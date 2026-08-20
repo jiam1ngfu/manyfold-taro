@@ -21,8 +21,8 @@ export interface SlotCopy {
 
 export interface Copy {
   localeName: string;
-  brand: string;
-  /** Signature printed on shared readings. */
+  /** Signature printed on shared readings. Says what this is, not who made it —
+   *  the site has no name, and nothing here is going to invent one. */
   signature: string;
   tagline: string;
 
@@ -118,14 +118,13 @@ export interface Copy {
 
 const zh: Copy = {
   localeName: '简体中文',
-  brand: '牌面',
-  signature: '牌面 · AI 塔罗',
+  signature: 'AI 塔罗',
   tagline: '三张牌，一次照见。',
 
   ask: {
     title: '把你的问题告诉我。',
     placeholder: '',
-    submit: '交给牌面',
+    submit: '开始',
     submitting: '正在递给占卜师……',
     remaining: (n) => `还可以写 ${n} 字`,
     empty: '先写下你想问的事。',
@@ -171,7 +170,7 @@ const zh: Copy = {
   },
 
   result: {
-    title: '牌面为你照见的部分',
+    title: '为你照见的部分',
     loading: ['我正在梳理三张牌之间的联系……', '这组牌的信息很多，让我慢慢为你展开。'],
     overview: '三张牌',
     connections: '三张牌之间',
@@ -206,7 +205,7 @@ const zh: Copy = {
   },
 
   errors: {
-    generic: '牌面一时没有回应。稍后再试一次。',
+    generic: '牌一时没有回应。稍后再试一次。',
     retry: '再试一次',
     tooLong: '问题太长了，请精简一些。',
     rateLimited: '今天问得有点多了，让牌歇一会儿再来。',
@@ -220,14 +219,13 @@ const zh: Copy = {
 
 const en: Copy = {
   localeName: 'English',
-  brand: 'Facing the Cards',
-  signature: 'Facing the Cards · AI Tarot',
+  signature: 'AI Tarot',
   tagline: 'Three cards, one clear look.',
 
   ask: {
     title: 'Tell me what you want to ask.',
     placeholder: '',
-    submit: 'Hand it to the cards',
+    submit: 'Begin',
     submitting: 'Passing it to the reader…',
     remaining: (n) => `${n} characters left`,
     empty: 'Write down what you want to ask first.',
