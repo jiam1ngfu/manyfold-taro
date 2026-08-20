@@ -188,9 +188,11 @@ html[data-app='taro'] body {
 /* The deck's two screens are the same case: nothing to scroll, and a table that
    should sit in the middle of the window rather than in the middle of what is
    left above a signature. The taller threshold is the deck's — the sweep needs
-   more room than one sentence does, and below this height the footer stays in
-   the flow and takes its share honestly. */
-@media (min-height: 780px) {
+   more room than one sentence does. Width is in the test because a phone wraps
+   the footer onto two or three lines and there is no slack under the deck to
+   put them over: narrow, and the footer stays in the flow and takes its share
+   honestly. */
+@media (min-width: 700px) and (min-height: 780px) {
   .taro.is-table .taro-foot {
     position: fixed;
     left: 0;
@@ -1233,6 +1235,78 @@ html[data-app='taro'] body {
   border: 0;
 }
 
+/* ── the table, on windows that are not a desk ──
+   Three rules of 26 need about 780px of height and 950 of width. Short of
+   either, the deck has to give something up, and these blocks say what. They
+   come last of the layout rules and in this order — short, then narrow, then
+   both — because the narrower case knows more than the shorter one does. */
+
+/* A laptop with a lot of browser furniture. The deck itself is untouched: it is
+   the padding around it that pays, which is what padding is for. */
+@media (max-height: 760px) {
+  .taro-table {
+    gap: clamp(12px, 2vh, 22px);
+    padding-block: 10px;
+  }
+
+  .taro-fan {
+    row-gap: 12px;
+  }
+}
+
+/* Anything from a phone up to a half-width window. A deeper shingle rather than
+   smaller cards: the step closes to 18px, which fits sixteen to a row and so
+   puts 78 backs in five rows instead of six. That pays for a card wider than
+   the desk's, on the screen with the least room and the fattest fingers — and
+   five taller rows come out shorter than six shallow ones, so it costs nothing.
+
+   The width is pinned to exactly sixteen steps rather than left to fill, so
+   that every phone from 360px up breaks 16/16/16/16/14 and not, say, five rows
+   of fifteen and one of three. Everything else derives from the three numbers,
+   so this is the whole of it. */
+@media (max-width: 700px) {
+  .taro-fan {
+    --card-w: 46px;
+    --card-step: 18px;
+    --stack-scale: 2.6;
+    width: min(calc(15 * var(--card-step) + var(--card-w)), 100%);
+    padding: 18px var(--card-lap) 12px 0;
+    row-gap: 8px;
+  }
+
+  /* The uneven top padding is the language switch — it is fixed to the top
+     right, and there is no room here to sit clear of it by accident, so the
+     middle of the page means the middle of what is under it. */
+  .taro-table {
+    gap: clamp(14px, 2.4vh, 26px);
+    padding: 42px 0 14px;
+  }
+
+  .taro-table-foot {
+    gap: clamp(14px, 2.4vh, 22px);
+  }
+}
+
+/* A small phone, or a large one held in a browser with a toolbar at each end.
+   Here the card does have to come down; sixteen to a row survives it. */
+@media (max-width: 700px) and (max-height: 760px) {
+  .taro-fan {
+    --card-w: 38px;
+    --card-step: 16px;
+    row-gap: 6px;
+    padding: 14px var(--card-lap) 10px 0;
+  }
+
+  .taro-table {
+    gap: clamp(10px, 1.8vh, 18px);
+    padding: 36px 0 10px;
+  }
+
+  .taro-instruction {
+    font-size: 15px;
+  }
+}
+
 @media (max-width: 560px) {
   .taro-stage {
     padding: 0 20px;
@@ -1240,21 +1314,6 @@ html[data-app='taro'] body {
 
   .taro-cards {
     gap: 10px;
-  }
-
-  .taro-table {
-    padding: 20px 0;
-  }
-
-  /* A tighter sweep, so the whole deck still fits above the fold on a phone —
-     tighter, not smaller. Everything derives from the three numbers, so this is
-     the whole of it: at a phone's width 78 backs fall into six even rows. */
-  .taro-fan {
-    --card-w: 44px;
-    --card-step: 25px;
-    --stack-scale: 2.5;
-    padding: 26px var(--card-lap) 22px 0;
-    row-gap: 12px;
   }
 
   .taro-card-label {
