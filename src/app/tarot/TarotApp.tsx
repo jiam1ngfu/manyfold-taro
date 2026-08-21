@@ -34,6 +34,7 @@ import CardSlot from './Card';
 import Fan from './Fan';
 import Reading, { Prose } from './Reading';
 import ShareBox from './ShareBox';
+import Speaking from './Speaking';
 import {
   ApiError,
   errorText,
@@ -489,13 +490,17 @@ export default function TarotApp() {
   const revealedCount = reading?.cards.length ?? 0;
   const allRevealed = revealedCount === SLOT_ORDER.length;
   const nextSlot = SLOT_ORDER[revealedCount];
-  /* The two screens the deck owns. Like the opening screen, they are looked at
+  /* The two screens the deck owns. Like the two before them, they are looked at
      rather than read: they want the width, and they want to be centred against
      the window rather than against what is left of it. */
   const atTable = phase === 'shuffle' || phase === 'choose';
+  /* Asking, and being answered. One thing on the screen each time, and it is the
+     same thing in the same place — so the frame does not move between putting
+     the question and hearing it come back. */
+  const alone = phase === 'ask' || phase === 'greeting';
 
   return (
-    <div className={`taro${phase === 'ask' ? ' is-opening' : ''}${atTable ? ' is-table' : ''}`}>
+    <div className={`taro${alone ? ' is-alone' : ''}${atTable ? ' is-table' : ''}`}>
       {/* The only chrome on the page. There is no mark and no name: the first
           thing anyone sees should be the question, not a logo. */}
       <header className="taro-top">
@@ -577,11 +582,14 @@ export default function TarotApp() {
         {phase === 'greeting' && reading && (
           <section className="taro-greeting">
             <p className="taro-asked">{reading.question}</p>
+            {/* Keyed on which of the two it is, so that the first real word
+                does not overwrite the waiting line letter by letter: the line
+                leaves, and the reader's own words surface in its place. */}
             {spoken !== null || !reading.greeting ? (
-              <p className="taro-speaking">
-                {spoken || copy.greeting.thinking}
-                <span className="taro-caret" aria-hidden />
-              </p>
+              <Speaking
+                key={spoken ? 'said' : 'thinking'}
+                text={spoken || copy.greeting.thinking}
+              />
             ) : (
               <Prose text={reading.greeting} className="taro-voice" />
             )}
@@ -686,12 +694,7 @@ export default function TarotApp() {
                     </p>
                   ) : null,
                 )}
-                {spoken !== null && (
-                  <p className="taro-hint taro-speaking">
-                    {spoken}
-                    <span className="taro-caret" aria-hidden />
-                  </p>
-                )}
+                {spoken !== null && <Speaking text={spoken} className="taro-hint" />}
 
                 {/* One line for the card that is about to turn, and nothing to
                     press: the visitor already made every choice they get. */}
@@ -752,10 +755,7 @@ export default function TarotApp() {
                 ))}
                 {followLive !== null && (
                   <div className="taro-said">
-                    <p className="taro-speaking">
-                      {followLive}
-                      <span className="taro-caret" aria-hidden />
-                    </p>
+                    <Speaking text={followLive} />
                   </div>
                 )}
                 {suggestsNew && (
