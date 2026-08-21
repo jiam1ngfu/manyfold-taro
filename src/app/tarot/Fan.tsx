@@ -20,6 +20,13 @@
  * to where it was always going to lie. That is the whole animation — no cards
  * appear, none are thrown away, and the space the deck occupies never changes
  * size, so the table stays put under it.
+ *
+ * What the stack does while it is stacked is a riffle and a cut, and every card
+ * in the deck is in it: the deck halves, the halves bend up and mesh into one
+ * another, and then the top half is carried clear and buried underneath. The
+ * cards genuinely change places in the stack while this happens — see
+ * `shuffleVars` — because a shuffle in which nothing passes anything is a
+ * shuffle the eye does not believe.
  */
 
 import {
@@ -53,6 +60,36 @@ const tiltFor = (position: number): number => (((position * 37) % 11) - 5) * 0.8
 
 /** The same, an order of magnitude smaller: a squared-up stack, but not a printed one. */
 const stackTiltFor = (position: number): number => (((position * 29) % 7) - 3) * 0.5;
+
+/**
+ * Where a card stands in the shuffle. The riffle and the cut are one keyframe
+ * list for the whole deck (`taro-shuffle` in tarot.css); these four numbers are
+ * the only thing in it that tells one card from another.
+ *
+ * The deck is halved the way a hand halves it — the bottom of the stack is the
+ * lower half, and what a hand lifts off it is the upper one — so `position`,
+ * which is also DOM order, is also depth in the stack.
+ *
+ *   side  which way that half travels out of the deck, ±1
+ *   d     0 at the bottom card of its half, 1 at the top: the bend of the bridge
+ *   cut   1 for the half a hand lifts and buries, 0 for the half left lying
+ *   mz    where the card ends up once the two halves are meshed — the halves
+ *         alternate, which is what a riffle is, and is why the shuffle changes
+ *         the order rather than merely looking busy. Based at 300 so that
+ *         burying a half (`mz - 300`) still lands above zero.
+ */
+const shuffleVars = (position: number, count: number): CSSProperties => {
+  const lower = Math.ceil(count / 2);
+  const upper = position >= lower;
+  const depth = upper ? position - lower : position;
+  const size = upper ? count - lower : lower;
+  return {
+    '--taro-side': upper ? 1 : -1,
+    '--taro-d': size > 1 ? Math.round((depth / (size - 1)) * 1000) / 1000 : 0,
+    '--taro-cut': upper ? 1 : 0,
+    '--taro-mz': 300 + depth * 2 + (upper ? 1 : 0),
+  } as CSSProperties;
+};
 
 /** Long enough for the last card in the sweep to land. Matches `.taro-fan.is-spreading`. */
 const SPREAD_MS = 1500;
@@ -189,6 +226,8 @@ export default function Fan({
                 // Drives the stagger: the sweep opens left to right, the way a
                 // hand opens a deck across a table.
                 '--taro-i': position,
+                // Which half this card is in, and what becomes of it there.
+                ...shuffleVars(position, count),
               } as CSSProperties
             }
             tabIndex={position === active ? 0 : -1}

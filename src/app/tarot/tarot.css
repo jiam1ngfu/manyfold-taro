@@ -42,6 +42,11 @@ html[data-app='taro'] body {
      the one accent in the file, and never at full strength. */
   --deep: #002c8b;
   --star: #9ab4ed;
+  /* The same ink taken up past its own white point. It is spent in one place
+     only — on a back the visitor has set aside — so that a chosen card reads as
+     lit from somewhere other than this room. Everything else on the spread is
+     lit by the table, or by nothing. */
+  --moon: #cfe0ff;
 
   --serif: 'Noto Serif SC', 'Songti SC', Georgia, 'Times New Roman', serif;
   --sans: ui-sans-serif, -apple-system, 'PingFang SC', 'Helvetica Neue', Arial, sans-serif;
@@ -806,8 +811,23 @@ html[data-app='taro'] body {
   /* How much bigger the deck is than one back in the sweep. Something you are
      watching being shuffled should read as a deck, not as a chip. */
   --stack-scale: 2.35;
+  /* One riffle and one cut, end to end. `SHUFFLE_MS` in TarotApp.tsx is the
+     same number, so the deck is squared up — not mid-riffle — at the instant it
+     is asked to open. */
+  --shuffle-cycle: 2800ms;
+  /* How far the shuffle reaches. Every distance in `taro-shuffle` was tuned
+     against a 62px back and is multiplied by this, so the gesture is measured in
+     cards rather than in pixels: the narrow layouts below use a smaller back and
+     a bigger deck, and a cut that carries a half one card clear of the desk
+     would carry it off the side of a phone. Angles are not scaled — a fan of the
+     same angle on a smaller card is already the same fan. */
+  --riffle: 1;
 
   position: relative;
+  /* The shuffle reorders the deck by moving cards past each other in the stack,
+     which means seventy-eight live z-indexes. They are the fan's business and
+     nobody else's. */
+  isolation: isolate;
   /* Sized to take exactly 26 backs to a row, so that 78 falls into three even
      rows instead of two and a stub. Narrower than that it simply wraps more. */
   width: min(calc(25 * var(--card-step) + var(--card-w)), 100%);
@@ -835,7 +855,12 @@ html[data-app='taro'] body {
   background: none;
   cursor: pointer;
   transform: rotate(var(--taro-tilt, 0deg));
-  transition: transform 260ms cubic-bezier(0.2, 0.75, 0.25, 1);
+  /* Slower than a control has any right to be, and that is the whole intention:
+     a back should come up the way something is drawn out of water, not the way
+     a button acknowledges a click. This is the going-back-down half — longer
+     than the rise, so the spread closes behind the hand rather than snapping
+     shut under it. */
+  transition: transform 780ms cubic-bezier(0.22, 0.82, 0.24, 1);
 }
 
 /* All 78 backs are one image — a background rather than 78 more elements, and
@@ -850,14 +875,85 @@ html[data-app='taro'] body {
   border-radius: calc(var(--card-w) * 0.07);
   background: var(--card-back) center / cover no-repeat, var(--card-stock);
   box-shadow: 0 12px 20px -14px #000;
-  transition: box-shadow 260ms ease;
+  transition: box-shadow 620ms ease;
+}
+
+/* ── how the spread is lit ──
+   Seventy-eight backs at full strength are seventy-eight things asking to be
+   pressed, which is the opposite of what this screen is for. So the open spread
+   lies in the dark and only what is under the hand comes up out of it.
+
+   The dark is a film over the art, not a filter on it: an opacity is something
+   the compositor carries on its own, and this one is on seventy-eight elements
+   that all change together the moment a pointer crosses the spread. The film is
+   the deck's own ink run to near-black, so what it takes away is warmth — the
+   backs recede blue rather than grey.
+
+   The stack is exempt. A deck being shuffled is the only thing on the screen;
+   there is nothing for it to recede behind. */
+.taro-fan-face::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: #04070f;
+  opacity: 0;
+  /* Late and slow, so the lights go down over the spread as it lands rather
+     than the instant it is dealt. */
+  transition: opacity 1100ms ease 260ms;
+}
+
+.taro-fan:not(.is-gathered) .taro-fan-face::after {
+  opacity: 0.56;
+}
+
+/* And the light itself, waiting at zero on every back. Warm-white and thrown
+   from above, because a card under your hand is lit by the table it is lying
+   on — the only cold light on this page is the one on a card you have already
+   set aside. */
+.taro-fan-face::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: radial-gradient(
+    132% 88% at 50% 2%,
+    rgba(228, 238, 255, 0.22),
+    rgba(206, 224, 255, 0.06) 46%,
+    transparent 72%
+  );
+  opacity: 0;
+  transition: opacity 640ms ease;
 }
 
 .taro-fan-card:hover,
 .taro-fan-card:focus-visible {
-  transform: rotate(var(--taro-tilt, 0deg)) translateY(-20px);
+  transform: rotate(var(--taro-tilt, 0deg)) translateY(-26px) scale(1.035);
   outline: none;
   z-index: 2;
+  /* The rise is quicker than the fall, and both are slow. */
+  transition-duration: 580ms;
+}
+
+.taro-fan-card:hover .taro-fan-face::after,
+.taro-fan-card:focus-visible .taro-fan-face::after {
+  opacity: 0;
+  transition: opacity 540ms ease;
+}
+
+.taro-fan-card:hover .taro-fan-face::before,
+.taro-fan-card:focus-visible .taro-fan-face::before {
+  opacity: 1;
+}
+
+/* With a hand anywhere over the spread, everything that is not under it goes
+   further down — so the lit card is lit against a darker room, not merely
+   against a dim one. Moving between two backs changes the state of exactly
+   two elements, the one left and the one arrived at, so the deepening costs
+   two opacity transitions rather than seventy-eight. */
+.taro-fan:not(.is-gathered):hover
+  .taro-fan-card:not(:hover):not(.is-chosen)
+  .taro-fan-face::after {
+  opacity: 0.72;
 }
 
 /* The lit edge is a ring in the shadow rather than a border, so it can sit
@@ -865,34 +961,62 @@ html[data-app='taro'] body {
 .taro-fan-card:hover .taro-fan-face,
 .taro-fan-card:focus-visible .taro-fan-face {
   box-shadow:
-    0 0 0 1px rgba(154, 180, 237, 0.5),
-    0 26px 34px -18px #000;
-}
-
-.taro-fan-card:focus-visible .taro-fan-face {
-  box-shadow:
     0 0 0 1px rgba(154, 180, 237, 0.85),
     0 26px 34px -18px #000;
 }
 
 .taro-fan-card:active {
-  transform: rotate(var(--taro-tilt, 0deg)) translateY(-11px) scale(0.97);
+  transform: rotate(var(--taro-tilt, 0deg)) translateY(-14px) scale(0.98);
+  transition-duration: 220ms;
 }
 
 /* Set aside, not turned over. The tilt comes out of it — a card that has been
-   squared up reads as chosen without anything on it having changed. */
+   squared up reads as chosen without anything on it having changed — and the
+   cold light comes onto it. */
 .taro-fan-card.is-chosen,
 .taro-fan-card.is-chosen:hover,
 .taro-fan-card.is-chosen:focus-visible {
-  transform: rotate(0deg) translateY(-34px);
+  transform: rotate(0deg) translateY(-36px);
   z-index: 3;
 }
 
 .taro-fan-card.is-chosen .taro-fan-face {
   box-shadow:
-    0 0 0 1px rgba(154, 180, 237, 0.7),
+    0 0 0 1px rgba(207, 224, 255, 0.62),
     0 30px 38px -20px #000,
-    0 0 26px -6px rgba(154, 180, 237, 0.45);
+    0 0 18px -6px rgba(154, 180, 237, 0.5);
+}
+
+/* Nothing is dimming a card that has been chosen. */
+.taro-fan-card.is-chosen .taro-fan-face::after {
+  opacity: 0.05;
+}
+
+/* The glow is in the air around the card rather than on the card, so the art
+   keeps its own two inks and only what is behind it goes blue-white. It
+   breathes on a slow cycle at an amplitude nobody would catch who was not
+   already looking at it, which is the difference between a card that is lit and
+   a card that is flashing. */
+.taro-fan-card.is-chosen::before {
+  content: '';
+  position: absolute;
+  inset: -16%;
+  border-radius: 24%;
+  background: radial-gradient(
+    closest-side,
+    rgba(207, 224, 255, 0.3),
+    rgba(154, 180, 237, 0.12) 56%,
+    transparent 78%
+  );
+  pointer-events: none;
+  animation: taro-chosen-glow 4.6s ease-in-out infinite;
+}
+
+@keyframes taro-chosen-glow {
+  50% {
+    opacity: 0.58;
+    transform: scale(0.96);
+  }
 }
 
 .taro-fan-card.is-chosen::after {
@@ -903,7 +1027,7 @@ html[data-app='taro'] body {
   width: 18px;
   height: 1px;
   transform: translateX(-50%);
-  background: var(--star);
+  background: var(--moon);
   opacity: 0.5;
 }
 
@@ -928,6 +1052,16 @@ html[data-app='taro'] body {
   box-shadow: 0 12px 20px -14px #000;
 }
 
+/* Nor does it light up. A spread that cannot be touched should not answer the
+   hand at all. */
+.taro-fan.is-waiting:not(.is-gathered) .taro-fan-card:hover .taro-fan-face::after {
+  opacity: 0.56;
+}
+
+.taro-fan.is-waiting:not(.is-gathered) .taro-fan-card:hover .taro-fan-face::before {
+  opacity: 0;
+}
+
 /* The stack takes no notice of the pointer at all. */
 .taro-fan.is-gathered {
   pointer-events: none;
@@ -946,45 +1080,173 @@ html[data-app='taro'] body {
      frame, with nowhere to have come from. Leaving it is the whole show. */
   transition: none;
   cursor: default;
+  /* The order the cards are in, which is the one thing a shuffle is actually
+     about. It rides on the card and not on its face, because where a card lies
+     in the stack is a fact about the element, not about the picture on it. */
+  animation: taro-shuffle-order var(--shuffle-cycle) steps(1) infinite;
 }
 
-/* Only the top of the deck riffles. The seventy-odd underneath are exactly
-   covered by it, and animating them would be seventy-odd lies at 60fps. */
-.taro-fan.is-gathered .taro-fan-card:nth-last-child(-n + 5) .taro-fan-face {
-  animation: taro-riffle 2.9s cubic-bezier(0.42, 0.02, 0.28, 1) infinite;
+/* ── the shuffle ──
+   A riffle, and then a cut. Between them they are the only pair of gestures
+   that says "these are in a different order now" without a word being spoken,
+   and the deck has to be seen doing both or the visitor is watching a stack of
+   cards fidget.
+
+   Every card in the deck takes part. A deck in which only the top five move is
+   a deck whose order has visibly not changed — which was the trouble with the
+   riffle this replaces — and the ones underneath are not a lie here: fanned a
+   pixel apart they are the edges you see when a real deck is bent, and they
+   are what makes seventy-eight of anything look like seventy-eight.
+
+   `--taro-side`, `--taro-d`, `--taro-cut` and `--taro-mz` come off Fan.tsx and
+   are the only thing that tells one card from another in here: which half it
+   was dealt into, how deep it lies in that half, whether it is the half a hand
+   would lift, and where it ends up once the two are meshed. Four numbers, one
+   keyframe list, seventy-eight cards. */
+.taro-fan.is-gathered .taro-fan-face {
+  animation: taro-shuffle var(--shuffle-cycle) infinite;
+  /* The top of a half leads the bottom of it by a hair, so a half peels off the
+     deck instead of leaving it as a brick. Negative, so that the very first
+     frame is already in motion rather than waiting its turn — and small enough
+     that the moments where the deck is square are still square. */
+  animation-delay: calc(var(--taro-d, 0) * -60ms);
 }
 
-.taro-fan.is-gathered .taro-fan-card:nth-last-child(1) .taro-fan-face {
-  animation-delay: 0ms;
-}
-.taro-fan.is-gathered .taro-fan-card:nth-last-child(2) .taro-fan-face {
-  animation-delay: 580ms;
-}
-.taro-fan.is-gathered .taro-fan-card:nth-last-child(3) .taro-fan-face {
-  animation-delay: 1160ms;
-}
-.taro-fan.is-gathered .taro-fan-card:nth-last-child(4) .taro-fan-face {
-  animation-delay: 1740ms;
-}
-.taro-fan.is-gathered .taro-fan-card:nth-last-child(5) .taro-fan-face {
-  animation-delay: 2320ms;
-}
-
-/* Small numbers: the face sits inside a card that is scaled up by
-   --stack-scale, so every one of these is multiplied by it on screen. */
-@keyframes taro-riffle {
+/* Every number here sits inside a card that is scaled up by --stack-scale, so
+   read them all as roughly twice as far on screen. One card is 62px wide before
+   that, which is why 42px apart is two halves with daylight between them and
+   62px is a half carried entirely clear of the deck. Each distance is taken
+   through --riffle, which is 1 at that width and smaller where the back is —
+   the gesture is the same shuffle on a phone, done in a smaller space. */
+@keyframes taro-shuffle {
+  /* Square, and still. */
   0%,
+  4% {
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+    animation-timing-function: cubic-bezier(0.36, 0, 0.24, 1);
+  }
+
+  /* Halved: the deck comes apart into two packets with the table between them. */
+  17% {
+    transform: translate3d(
+        calc(var(--riffle) * var(--taro-side) * 42px),
+        calc(var(--riffle) * (-2px - 4px * var(--taro-d))),
+        0
+      )
+      rotate(calc(var(--taro-side) * 2.5deg)) scale(1);
+    animation-timing-function: cubic-bezier(0.4, 0, 0.3, 1);
+  }
+
+  /* Bent up and held: the bridge. Each packet fans from its bottom card, which
+     stays on the table, to its top card, which is highest and leaning furthest
+     in — so the two fans meet over the middle of the deck. */
+  31% {
+    transform: translate3d(
+        calc(var(--riffle) * var(--taro-side) * (32px - 15px * var(--taro-d))),
+        calc(var(--riffle) * (-3px - 21px * var(--taro-d))),
+        0
+      )
+      rotate(calc(var(--taro-side) * (3deg + 7deg * var(--taro-d))))
+      scale(calc(1 + 0.04 * var(--taro-d)));
+    animation-timing-function: cubic-bezier(0.7, 0, 0.36, 1);
+  }
+
+  /* Let go. Every card falls into the one gap the other packet left for it —
+     which by now is literally true of the stacking order as well. */
+  43% {
+    transform: translate3d(
+        calc(var(--riffle) * var(--taro-side) * (7px - 4px * var(--taro-d))),
+        calc(var(--riffle) * (-1px - 4px * var(--taro-d))),
+        0
+      )
+      rotate(calc(var(--taro-side) * (0.8deg + 1.6deg * var(--taro-d)))) scale(1);
+    animation-timing-function: cubic-bezier(0.24, 0.9, 0.3, 1);
+  }
+
+  /* Squared up, and a beat to see that it is one deck again. */
+  49%,
+  55% {
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+    animation-timing-function: cubic-bezier(0.42, 0, 0.22, 1);
+  }
+
+  /* The cut. The top half only: lifted off the deck — scale is the only thing
+     that can say "off the table" on a page with no perspective in it — and
+     carried out to the side.
+
+     Both halves keep a fanned edge through the cut. The terms that carry
+     `--taro-cut` are the lift; the ones that carry only `--taro-d` are the
+     thickness, and they are outside it on purpose. A hand that has just cut a
+     deck is holding two loose packets, and if the depth ramp were inside the
+     cut factor the half left lying would flatten to a single card at the one
+     moment the visitor is being shown that the order has changed.
+
+     The constant subtracted from both halves is the hand: a cut that only ever
+     moved the top half would slide the whole deck's weight off to one side of
+     the table for a third of the cycle. The lifted half still travels twice as
+     far as the one left lying, so it is still plainly the half being carried —
+     it is just carried around the deck rather than away from it, which keeps
+     the gesture centred under the title and, on a phone, on the screen. */
+  66% {
+    transform: translate3d(
+        calc(var(--riffle) * (var(--taro-cut) * 56px - 18px)),
+        calc(var(--riffle) * (-2px - 6px * var(--taro-d) + var(--taro-cut) * (-11px - 4px * var(--taro-d)))),
+        0
+      )
+      rotate(calc(var(--taro-cut) * -4deg + 1.4deg * var(--taro-d)))
+      scale(calc(1 + var(--taro-cut) * 0.05));
+    animation-timing-function: cubic-bezier(0.4, 0, 0.6, 1);
+  }
+
+  /* Clear of the deck, which is the moment it is safe to change what it is
+     under: see taro-shuffle-order, which drops it below the other half here. */
+  74% {
+    transform: translate3d(
+        calc(var(--riffle) * (var(--taro-cut) * 62px - 20px)),
+        calc(var(--riffle) * (-1px - 5px * var(--taro-d) + var(--taro-cut) * -4px)),
+        0
+      )
+      rotate(calc(var(--taro-cut) * -2deg + 1deg * var(--taro-d)))
+      scale(calc(1 + var(--taro-cut) * 0.03));
+    animation-timing-function: cubic-bezier(0.5, 0, 0.24, 1);
+  }
+
+  /* And slid home underneath, where it disappears — which is exactly what a
+     half of a deck does when it is buried. */
+  88%,
   100% {
-    transform: translate3d(0, 0, 0) rotate(0deg);
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
   }
-  22% {
-    transform: translate3d(-25px, -5px, 0) rotate(-9deg);
+}
+
+/* What the riffle and the cut actually do to the deck, said in paint order.
+   Stepped rather than interpolated: a z-index halfway between two cards is a
+   card in a place no shuffle ever put it, and steps(1) means the value simply
+   holds until the moment it is meant to change.
+
+   The two changes are timed to happen where they cannot be caught. The mesh
+   lands at 24%, while the halves are still apart with daylight between them,
+   so that they are already interleaved by the time they cross; the burial lands
+   at 74%, with the lifted half sitting entirely clear of the deck. */
+@keyframes taro-shuffle-order {
+  /* As dealt: no z-index at all, so the cards paint in the order they are in. */
+  0%,
+  23.9% {
+    z-index: 0;
   }
-  48% {
-    transform: translate3d(3px, -12px, 0) rotate(3deg);
+
+  /* Riffled: every card from one half now lies between two from the other. */
+  24%,
+  73.9% {
+    z-index: var(--taro-mz, 0);
   }
-  72% {
-    transform: translate3d(24px, -4px, 0) rotate(8deg);
+
+  /* Cut: the half that was on top is under everything. Held at 300 above the
+     floor so that subtracting a whole deck's worth cannot reach zero — a
+     negative z-index would take a card out through the back of the table. */
+  74%,
+  100% {
+    z-index: calc(var(--taro-mz, 0) - var(--taro-cut, 0) * 300);
   }
 }
 
@@ -1342,6 +1604,11 @@ html[data-app='taro'] body {
     --card-w: 46px;
     --card-step: 18px;
     --stack-scale: 2.6;
+    /* The back is smaller here but the deck is scaled up further, so the riffle
+       is pulled in by a little more than the back is: at 0.7 the cut still
+       carries a half nearly its own width clear, and the whole gesture stays
+       inside 350px — which is the narrowest phone this lays out for. */
+    --riffle: 0.7;
     width: min(calc(15 * var(--card-step) + var(--card-w)), 100%);
     padding: 18px var(--card-lap) 12px 0;
     row-gap: 8px;
@@ -1366,6 +1633,7 @@ html[data-app='taro'] body {
   .taro-fan {
     --card-w: 38px;
     --card-step: 16px;
+    --riffle: 0.58;
     row-gap: 6px;
     padding: 14px var(--card-lap) 10px 0;
   }
@@ -1419,19 +1687,17 @@ html[data-app='taro'] body {
     display: none;
   }
 
-  /* The riffle stops, so the top of the deck is splayed by hand instead: still
-     a deck being shuffled, just not one that is moving. The sweep out of it
-     becomes a cut, which is what the 1ms above does to it. */
-  .taro-fan.is-gathered .taro-fan-card:nth-last-child(1) .taro-fan-face {
-    transform: translate3d(21px, -4px, 0) rotate(8deg);
-  }
-  .taro-fan.is-gathered .taro-fan-card:nth-last-child(2) .taro-fan-face {
-    transform: translate3d(7px, -11px, 0) rotate(3deg);
-  }
-  .taro-fan.is-gathered .taro-fan-card:nth-last-child(3) .taro-fan-face {
-    transform: translate3d(-8px, -10px, 0) rotate(-4deg);
-  }
-  .taro-fan.is-gathered .taro-fan-card:nth-last-child(4) .taro-fan-face {
-    transform: translate3d(-22px, -3px, 0) rotate(-9deg);
+  /* The shuffle stops, so the deck is held open by hand instead: both halves
+     bent up into the bridge and frozen there, which is a deck being shuffled in
+     the one frame that says so most clearly. The animation above runs once for
+     a millisecond and, having no fill, leaves this transform standing. The
+     sweep out of it becomes a cut, which is what the 1ms does to it. */
+  .taro-fan.is-gathered .taro-fan-face {
+    transform: translate3d(
+        calc(var(--riffle) * var(--taro-side, 1) * (30px - 13px * var(--taro-d, 0))),
+        calc(var(--riffle) * (-4px - 17px * var(--taro-d, 0))),
+        0
+      )
+      rotate(calc(var(--taro-side, 1) * (3deg + 6deg * var(--taro-d, 0))));
   }
 }
