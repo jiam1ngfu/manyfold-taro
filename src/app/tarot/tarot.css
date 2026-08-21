@@ -103,16 +103,22 @@ html[data-app='taro'] body {
 }
 
 /* The dust the stars hang in front of, and the only ornament in the file that is
-   not telling you something. Twenty-five far specks over nine near ones, on two
-   tiles whose periods share no factor — 370 and 520 — so the field only truly
-   repeats every 9,620px and never resolves into wallpaper.
+   not telling you something. Twenty-five specks a tile, sub-pixel, held at 0.42
+   so the brightest of them arrives at 0.17 alpha — under the floor every live
+   star in Sky.tsx is built to clear. That relationship is the whole rule for
+   this layer, and it is the one that was broken: a second tile used to sit over
+   this one carrying nine dots at four times the radius and 0.44 alpha, which
+   made the brightest thing in the sky a piece of paint that could never move.
+   Seventy-two of them on a desktop window, out-shining thirty-seven of the
+   fifty-two live stars. The eye went to the dead layer and reported, correctly,
+   that the sky did not twinkle.
 
-   Held at 0.55 rather than full, and that single number is what turns this layer
-   from the sky into the dust behind it: the nine bright dots in the 370 tile
-   drop to around a quarter alpha, too faint to read as stars, dense enough to
-   give the window depth for the live field in Sky.tsx to hang in. Everything
-   here is printed and repeated, so nothing here is allowed to be what the eye
-   goes to.
+   So there is one tile now and it is the faint one. Everything here is printed
+   and repeated, and nothing here is allowed to be what the eye goes to; the
+   price of dropping the second tile is that this one repeats every 520px
+   instead of every 9,620px, which is a real loss and an invisible one — a 1.4px
+   dot at a sixth of an alpha, behind a fade, under two dozen brighter things
+   that are moving, does not have the presence to give a period away.
 
    Fixed, because a sky does not scroll — and masked to the top of the window
    rather than spread evenly over it, which is the whole difference between a sky
@@ -129,32 +135,29 @@ html[data-app='taro'] body {
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  background-image:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='370' height='370'%3E%3Cg fill='%23dbe5ff'%3E%3Ccircle cx='39' cy='79' r='1.3' opacity='0.79'/%3E%3Ccircle cx='214' cy='337' r='1.4' opacity='0.75'/%3E%3Ccircle cx='84' cy='274' r='1.3' opacity='0.54'/%3E%3Ccircle cx='166' cy='55' r='1.4' opacity='0.69'/%3E%3Ccircle cx='32' cy='160' r='1.1' opacity='0.54'/%3E%3Ccircle cx='350' cy='89' r='1.1' opacity='0.79'/%3E%3Ccircle cx='296' cy='302' r='1.2' opacity='0.5'/%3E%3Ccircle cx='307' cy='209' r='1.3' opacity='0.62'/%3E%3Ccircle cx='139' cy='164' r='1.1' opacity='0.8'/%3E%3C/g%3E%3C/svg%3E"),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='520' height='520'%3E%3Cg fill='%23dbe5ff'%3E%3Ccircle cx='46' cy='390' r='0.6' opacity='0.22'/%3E%3Ccircle cx='442' cy='22' r='0.6' opacity='0.36'/%3E%3Ccircle cx='55' cy='145' r='0.6' opacity='0.29'/%3E%3Ccircle cx='224' cy='481' r='0.9' opacity='0.31'/%3E%3Ccircle cx='278' cy='243' r='1.0' opacity='0.19'/%3E%3Ccircle cx='493' cy='393' r='0.7' opacity='0.27'/%3E%3Ccircle cx='240' cy='162' r='0.8' opacity='0.39'/%3E%3Ccircle cx='254' cy='384' r='0.7' opacity='0.29'/%3E%3Ccircle cx='256' cy='36' r='0.9' opacity='0.34'/%3E%3Ccircle cx='376' cy='403' r='0.9' opacity='0.23'/%3E%3Ccircle cx='362' cy='273' r='0.6' opacity='0.34'/%3E%3Ccircle cx='370' cy='153' r='0.9' opacity='0.41'/%3E%3Ccircle cx='128' cy='126' r='0.7' opacity='0.37'/%3E%3Ccircle cx='15' cy='255' r='0.6' opacity='0.18'/%3E%3Ccircle cx='355' cy='481' r='0.6' opacity='0.28'/%3E%3Ccircle cx='170' cy='462' r='0.7' opacity='0.31'/%3E%3Ccircle cx='160' cy='329' r='0.6' opacity='0.21'/%3E%3Ccircle cx='457' cy='498' r='1.0' opacity='0.2'/%3E%3Ccircle cx='394' cy='37' r='0.9' opacity='0.31'/%3E%3Ccircle cx='38' cy='24' r='0.9' opacity='0.18'/%3E%3Ccircle cx='435' cy='256' r='0.8' opacity='0.39'/%3E%3Ccircle cx='439' cy='136' r='0.8' opacity='0.39'/%3E%3Ccircle cx='131' cy='266' r='0.9' opacity='0.26'/%3E%3Ccircle cx='62' cy='503' r='0.8' opacity='0.26'/%3E%3Ccircle cx='194' cy='16' r='0.9' opacity='0.24'/%3E%3C/g%3E%3C/svg%3E");
-  background-size:
-    370px 370px,
-    520px 520px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='520' height='520'%3E%3Cg fill='%23dbe5ff'%3E%3Ccircle cx='46' cy='390' r='0.6' opacity='0.22'/%3E%3Ccircle cx='442' cy='22' r='0.6' opacity='0.36'/%3E%3Ccircle cx='55' cy='145' r='0.6' opacity='0.29'/%3E%3Ccircle cx='224' cy='481' r='0.9' opacity='0.31'/%3E%3Ccircle cx='278' cy='243' r='1.0' opacity='0.19'/%3E%3Ccircle cx='493' cy='393' r='0.7' opacity='0.27'/%3E%3Ccircle cx='240' cy='162' r='0.8' opacity='0.39'/%3E%3Ccircle cx='254' cy='384' r='0.7' opacity='0.29'/%3E%3Ccircle cx='256' cy='36' r='0.9' opacity='0.34'/%3E%3Ccircle cx='376' cy='403' r='0.9' opacity='0.23'/%3E%3Ccircle cx='362' cy='273' r='0.6' opacity='0.34'/%3E%3Ccircle cx='370' cy='153' r='0.9' opacity='0.41'/%3E%3Ccircle cx='128' cy='126' r='0.7' opacity='0.37'/%3E%3Ccircle cx='15' cy='255' r='0.6' opacity='0.18'/%3E%3Ccircle cx='355' cy='481' r='0.6' opacity='0.28'/%3E%3Ccircle cx='170' cy='462' r='0.7' opacity='0.31'/%3E%3Ccircle cx='160' cy='329' r='0.6' opacity='0.21'/%3E%3Ccircle cx='457' cy='498' r='1.0' opacity='0.2'/%3E%3Ccircle cx='394' cy='37' r='0.9' opacity='0.31'/%3E%3Ccircle cx='38' cy='24' r='0.9' opacity='0.18'/%3E%3Ccircle cx='435' cy='256' r='0.8' opacity='0.39'/%3E%3Ccircle cx='439' cy='136' r='0.8' opacity='0.39'/%3E%3Ccircle cx='131' cy='266' r='0.9' opacity='0.26'/%3E%3Ccircle cx='62' cy='503' r='0.8' opacity='0.26'/%3E%3Ccircle cx='194' cy='16' r='0.9' opacity='0.24'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 520px 520px;
   -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 28%, transparent 72%);
   mask-image: linear-gradient(to bottom, #000 0%, #000 28%, transparent 72%);
-  opacity: 0.55;
+  opacity: 0.42;
   animation: taro-tide 47s ease-in-out infinite;
 }
 
 /* The one motion this layer is allowed, and it is deliberately a single motion
    for the whole sheet — which is exactly the thing the live field must never do.
-   It gets away with it because of the arithmetic: at a quarter alpha, a swing of
-   0.17 is about 0.04 of alpha on any one speck, spread over twenty-three
-   seconds. That is under what an eye can resolve, so it lands as weather rather
-   than as a blink, and everything that visibly twinkles does it star by star one
-   layer forward.
+   It gets away with it because of the arithmetic: a swing of 0.13 on a layer
+   whose brightest speck is already down at 0.17 comes to about 0.05 of alpha on
+   any one dot, spread over twenty-three seconds — two thousandths of an alpha a
+   second, against the quarter-alpha-a-second a live star now moves. Two orders
+   of magnitude apart is the difference between weather and a blink, and it is
+   why this sheet is allowed to move as one and the field in front of it is not.
 
    The keyframe only names 50%, which puts both ends at full — so the
    reduced-motion rule at the foot of this file, which runs every animation once
    for a millisecond, leaves the dust lit rather than caught halfway down. */
 @keyframes taro-tide {
   50% {
-    opacity: 0.38;
+    opacity: 0.29;
   }
 }
 
@@ -169,8 +172,12 @@ html[data-app='taro'] body {
 
      · No two stars agree. Each carries its own period and its own negative
        delay, so the field has no beat to find and never crosses zero together.
-     · Faint stars flicker hardest — see Sky.tsx, where the swing is set against
-       the brightness.
+     · Every star clears the threshold. Faint stars still flicker hardest as a
+       fraction of themselves — see Sky.tsx, where the swing is set against the
+       brightness — but a fraction is not what an eye is handed, and the floor
+       under the brightness there is what turns that fraction into light anyone
+       can see move. There are two dozen stars and not fifty-six precisely so
+       there is room to spend on this.
      · The whole sky wheels. Slowly enough that it is never caught in the act,
        far enough that the sky is somewhere else when you look up from the
        reading. This, not the twinkle, is what stops the page being a photograph.
@@ -237,6 +244,19 @@ html[data-app='taro'] body {
      lifted blue for the far ones, mixed per star. In oklab, so the middle of the
      mix stays a star rather than dipping through a grey. */
   background: color-mix(in oklab, #eef2ff var(--taro-white), var(--star));
+  /* The halo, and the reason a star here is a light rather than a dot of paint.
+     A hard-edged disc of colour is read as a mark on a surface no matter how
+     small it is; the same disc with light falling off around it is read as
+     something behind the surface, giving light off. That is the entire
+     difference between a sky and a speckle at this size.
+
+     Both terms are the star's own: the blur is a multiple of its width, so the
+     halo travels with it through every scale the keyframes put it through, and
+     the alpha is its brightness, so the brighter a star is the further its light
+     carries. Which is what gives the field a front and a back without anything
+     having to be told which it is in. */
+  box-shadow: 0 0 calc(var(--taro-size) * 1.7)
+    color-mix(in srgb, var(--star) calc(var(--taro-lit) * 60%), transparent);
   /* Its own brightness, standing still. Which is also where the reduced-motion
      rule leaves it: the animation is overridden to a millisecond and has no
      fill, so what remains is a lit, motionless sky. */
@@ -249,51 +269,80 @@ html[data-app='taro'] body {
    is what a heartbeat has and scintillation does not. The intermediate stops are
    calculated from the same two numbers as the ends rather than carried in as two
    more custom properties: they are fractions of this star's own swing, so they
-   are the shape of the flicker and belong here with the rest of the shape. */
+   are the shape of the flicker and belong here with the rest of the shape.
+
+   The first peak is at 28% and not at the middle, because where the peak sits is
+   what sets the speed of the only stroke anyone actually sees. The whole swing
+   is spent getting there: on a median star that is a third of an alpha in about
+   a second and a third, which clears the rate at which a change stops being a
+   difference and starts being a movement. Sliding that stop later would keep
+   every other number in this file identical and put the sky back to sleep.
+
+   Scale carries the same stroke a second time. Alpha alone can be argued with by
+   a bright window or a dark room; a point that also grows by half is not
+   ambiguous on any screen, and growing is what a point source does when it
+   brightens, so the two channels are one gesture rather than two effects. */
 @keyframes taro-twinkle {
   0%,
   100% {
     opacity: var(--taro-lo);
-    transform: scale(0.88);
+    transform: scale(0.82);
   }
-  34% {
+  28% {
     opacity: var(--taro-lit);
-    transform: scale(1.18);
+    transform: scale(1.26);
   }
-  56% {
-    opacity: calc(var(--taro-lo) + (var(--taro-lit) - var(--taro-lo)) * 0.36);
-    transform: scale(0.96);
+  52% {
+    opacity: calc(var(--taro-lo) + (var(--taro-lit) - var(--taro-lo)) * 0.3);
+    transform: scale(0.94);
   }
-  76% {
-    opacity: calc(var(--taro-lo) + (var(--taro-lit) - var(--taro-lo)) * 0.8);
-    transform: scale(1.1);
+  74% {
+    opacity: calc(var(--taro-lo) + (var(--taro-lit) - var(--taro-lo)) * 0.84);
+    transform: scale(1.16);
   }
 }
 
-/* The four that do something rather than shimmer. A glow, and a cycle that is
-   mostly nothing: they sit at their floor for half a minute and then bloom once,
-   wide and slow, and go back down. Their periods are the longest on the page and
-   share no factor with each other, so two of them blooming together is not
-   something a sitting is long enough to see. */
+/* The four that do something rather than shimmer. Near-white, half again as
+   wide as the tier below them, and carrying a glow at twice the reach — a
+   lantern has to be recognisable as a different kind of object before its rarer
+   behaviour means anything, and a hierarchy the eye has to measure to notice is
+   not a hierarchy. Their periods are the longest on the page and share no factor
+   with each other, so two of them blooming together is not something a sitting
+   is long enough to see. */
 .taro-star.is-lantern {
-  box-shadow: 0 0 calc(var(--taro-size) * 2.6) color-mix(in srgb, var(--star) 42%, transparent);
+  box-shadow: 0 0 calc(var(--taro-size) * 3.2) color-mix(in srgb, var(--star) 52%, transparent);
   animation-name: taro-bloom;
 }
 
+/* Quiet, one breath, then the bloom. The breath is the part that was missing:
+   this cycle used to hold dead flat for the first 52% of it, which meant the
+   four brightest things in the sky — the four an eye actually settles on — were
+   the four least likely to be caught moving. A background whose focal points are
+   frozen is a photograph with a lit corner. So the quiet stretch now rises a
+   quarter of the way and falls back, slowly enough to be found rather than seen,
+   and the bloom still arrives out of near-stillness because a shallow breath is
+   not what a fifty-percent scale reads against. */
 @keyframes taro-bloom {
   0%,
-  52%,
   100% {
+    opacity: var(--taro-lo);
+    transform: scale(1);
+  }
+  22% {
+    opacity: calc(var(--taro-lo) + (var(--taro-lit) - var(--taro-lo)) * 0.26);
+    transform: scale(1.08);
+  }
+  44% {
     opacity: var(--taro-lo);
     transform: scale(1);
   }
   70% {
     opacity: var(--taro-lit);
-    transform: scale(1.6);
+    transform: scale(1.7);
   }
-  84% {
-    opacity: calc(var(--taro-lo) + (var(--taro-lit) - var(--taro-lo)) * 0.34);
-    transform: scale(1.14);
+  86% {
+    opacity: calc(var(--taro-lo) + (var(--taro-lit) - var(--taro-lo)) * 0.3);
+    transform: scale(1.12);
   }
 }
 
