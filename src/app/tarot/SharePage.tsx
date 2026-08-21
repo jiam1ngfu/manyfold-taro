@@ -15,6 +15,7 @@ import { useEffect, useState } from 'react';
 import { copyFor, normalizeLocale } from '../../shared/tarot/i18n';
 import type { ShareSnapshot } from '../../shared/tarot/types';
 import CardSlot from './Card';
+import Sky from './Sky';
 import { fetchShare } from './api';
 
 const tokenFromPath = (): string => decodeURIComponent(location.pathname.replace(/^\/s\//, ''));
@@ -39,6 +40,7 @@ export default function SharePage() {
   if (missing) {
     return (
       <div className="taro">
+        <Sky />
         <main className="taro-stage">
           <p className="taro-error">{copy.share.notFound}</p>
           <a className="taro-primary" href="/">
@@ -52,6 +54,7 @@ export default function SharePage() {
   if (!snapshot) {
     return (
       <div className="taro">
+        <Sky />
         <main className="taro-stage">
           <p className="taro-instruction">…</p>
         </main>
@@ -61,6 +64,7 @@ export default function SharePage() {
 
   return (
     <div className="taro">
+      <Sky />
       <main className="taro-stage taro-shared">
         <h1 className="taro-shared-title">{copy.share.viewTitle}</h1>
 

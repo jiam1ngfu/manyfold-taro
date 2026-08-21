@@ -34,6 +34,7 @@ import CardSlot from './Card';
 import Fan from './Fan';
 import Reading, { Prose } from './Reading';
 import ShareBox from './ShareBox';
+import Sky from './Sky';
 import Speaking from './Speaking';
 import {
   ApiError,
@@ -503,6 +504,7 @@ export default function TarotApp() {
 
   return (
     <div className={`taro${alone ? ' is-alone' : ''}${atTable ? ' is-table' : ''}`}>
+      <Sky />
       {/* The only chrome on the page. There is no mark and no name: the first
           thing anyone sees should be the question, not a logo. */}
       <header className="taro-top">
