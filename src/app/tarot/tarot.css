@@ -243,11 +243,14 @@ html[data-app='taro'] body {
   text-indent: 0.3em;
 }
 
-/* On the first screen there is nothing to scroll, so the footer steps out of
-   the flow: the question is then centred against the window itself rather than
-   against whatever is left above the footer. */
+/* On the first two screens there is nothing to scroll, so the footer steps out
+   of the flow: what is on them is then centred against the window itself rather
+   than against whatever is left above the footer. Both screens, not just the
+   first, because they are the same shot — a question is put and the same patch
+   of dark answers it — and a frame that shifted by the height of a signature
+   between the two would make the answer look like a different page. */
 @media (min-height: 560px) {
-  .taro.is-opening .taro-foot {
+  .taro.is-alone .taro-foot {
     position: fixed;
     left: 0;
     right: 0;
@@ -457,9 +460,33 @@ html[data-app='taro'] body {
   }
 }
 
-/* ── 2 · the reader answers ── */
+/* ── 2 · the reader answers ──
+   Held in the middle of the window, on the same terms as the question was: the
+   answer lands where the eye is already looking instead of starting at the top
+   of the page and asking it to go back up.
 
-.taro-greeting,
+   `flex: 1` rather than a height, so this cannot trap its own overflow. A long
+   greeting simply makes the section taller than the space, there is no free
+   room left for `center` to distribute, and the page scrolls normally. */
+.taro-greeting {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 28px;
+  /* Symmetrical, so "centred" is true rather than approximately true — and deep
+     enough that a greeting long enough to scroll clears the signature, which by
+     then is fixed to the bottom of the window. */
+  padding: 72px 0;
+  /* The screen arrives the way the words inside it do. This runs on mount and
+     only on mount, so the swap from the live text to the settled paragraph —
+     same words, same place — passes without a second fade. */
+  animation: taro-rise 1500ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
+}
+
+/* Not this one: the three cards are above it, so it is the lower half of a
+   screen rather than the whole of one. It stays where it falls. */
 .taro-waiting {
   display: flex;
   flex-direction: column;
@@ -505,8 +532,31 @@ html[data-app='taro'] body {
   color: var(--ink);
 }
 
-.taro-voice p:last-child {
-  margin-bottom: 0;
+/* The reader's words do not appear, they surface: each one lifts a little way
+   out of the black, out of focus, and comes into focus as it settles. Only the
+   pieces that are new to the paragraph carry this — the ones already said keep
+   their element and so keep their finished animation, which is why the sentence
+   builds rather than pulsing from the start on every token.
+
+   The blur is what makes it a divination rather than a typewriter. It is also
+   the reason the piece is inline-block: `filter` needs a box, and an inline span
+   wrapped across a line has two.
+
+   No delay in here. The reader's cadence supplies the stagger — see Speaking.tsx.
+   Under prefers-reduced-motion the blanket rule at the foot of this file runs
+   this once for a millisecond, which lands every piece at rest, in focus,
+   immediately: the words are all still there, they simply do not arrive. */
+.taro-word {
+  display: inline-block;
+  animation: taro-surface 1100ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
+}
+
+@keyframes taro-surface {
+  from {
+    opacity: 0;
+    filter: blur(5px);
+    transform: translateY(5px);
+  }
 }
 
 .taro-caret {
