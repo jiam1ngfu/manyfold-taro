@@ -102,10 +102,17 @@ html[data-app='taro'] body {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
-/* The sky the room is under, and the only ornament in the file that is not
-   telling you something. Nine near stars over twenty-five far ones, on two tiles
-   whose periods share no factor — 370 and 520 — so the field only truly repeats
-   every 9,620px and never resolves into wallpaper.
+/* The dust the stars hang in front of, and the only ornament in the file that is
+   not telling you something. Twenty-five far specks over nine near ones, on two
+   tiles whose periods share no factor — 370 and 520 — so the field only truly
+   repeats every 9,620px and never resolves into wallpaper.
+
+   Held at 0.55 rather than full, and that single number is what turns this layer
+   from the sky into the dust behind it: the nine bright dots in the 370 tile
+   drop to around a quarter alpha, too faint to read as stars, dense enough to
+   give the window depth for the live field in Sky.tsx to hang in. Everything
+   here is printed and repeated, so nothing here is allowed to be what the eye
+   goes to.
 
    Fixed, because a sky does not scroll — and masked to the top of the window
    rather than spread evenly over it, which is the whole difference between a sky
@@ -130,17 +137,163 @@ html[data-app='taro'] body {
     520px 520px;
   -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 28%, transparent 72%);
   mask-image: linear-gradient(to bottom, #000 0%, #000 28%, transparent 72%);
-  animation: taro-starlight 11s ease-in-out infinite;
+  opacity: 0.55;
+  animation: taro-tide 47s ease-in-out infinite;
 }
 
-/* Slow and shallow, so the sky is alive at the edge of vision and perfectly
-   still when you look straight at it. The keyframe only names 50%, which puts
-   both ends at full — so the reduced-motion rule at the foot of this file, which
-   runs every animation once for a millisecond, leaves the stars lit rather than
-   caught halfway through dimming. */
-@keyframes taro-starlight {
+/* The one motion this layer is allowed, and it is deliberately a single motion
+   for the whole sheet — which is exactly the thing the live field must never do.
+   It gets away with it because of the arithmetic: at a quarter alpha, a swing of
+   0.17 is about 0.04 of alpha on any one speck, spread over twenty-three
+   seconds. That is under what an eye can resolve, so it lands as weather rather
+   than as a blink, and everything that visibly twinkles does it star by star one
+   layer forward.
+
+   The keyframe only names 50%, which puts both ends at full — so the
+   reduced-motion rule at the foot of this file, which runs every animation once
+   for a millisecond, leaves the dust lit rather than caught halfway down. */
+@keyframes taro-tide {
   50% {
-    opacity: 0.62;
+    opacity: 0.38;
+  }
+}
+
+/* ── sky ── */
+
+/* The stars proper. The field itself is in Sky.tsx — where each star goes, how
+   bright it is, and how fast it flickers — and every one of those numbers
+   arrives on a custom property, so that file describes the sky and this one
+   describes only what a star does.
+
+   Three things make this a sky rather than a screensaver:
+
+     · No two stars agree. Each carries its own period and its own negative
+       delay, so the field has no beat to find and never crosses zero together.
+     · Faint stars flicker hardest — see Sky.tsx, where the swing is set against
+       the brightness.
+     · The whole sky wheels. Slowly enough that it is never caught in the act,
+       far enough that the sky is somewhere else when you look up from the
+       reading. This, not the twinkle, is what stops the page being a photograph.
+
+   Never intercepts a pointer, never in the accessibility tree, and never in the
+   flow: `fixed` takes it out of the flex column whose first child it is, so
+   putting a sky on a page costs that page's layout nothing. */
+.taro-sky {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  /* The field inside is oversized, to give the wheel somewhere to turn from;
+     this is what keeps the overhang off the window. The mask cannot do it — a
+     mask image tiles by default, so past the edge it would go on fading the
+     overhang in stripes instead of cutting it. */
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 28%, transparent 72%);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 28%, transparent 72%);
+}
+
+.taro-sky-field {
+  position: absolute;
+  /* The overhang, in vh on all four sides rather than percentages of each. The
+     wheel below swings the far corners of this box by just under 5vh — the
+     figure scales with the height, because the pivot is placed in heights — so a
+     horizontal overhang quoted as a percentage of the *width* would be ample on
+     a desktop and would open a bare strip at the top of a phone. One unit, one
+     margin, right on every shape of window. */
+  inset: -6vh;
+  /* The pivot sits about one window below the sill. Everything above it swings
+     further than everything below it, which is both what a sky does and what
+     puts the most movement where the field is brightest. */
+  transform-origin: 50% 170%;
+  animation: taro-wheel 186s ease-in-out infinite alternate;
+}
+
+/* 1.5 degrees is about 45px at the top edge, over three minutes: a third of a
+   pixel a second, well under the speed at which motion is seen as motion.
+
+   Out and back rather than round, because `alternate` on an ease-in-out reverses
+   at zero velocity — the sky changes its mind about which way it is turning at
+   the one moment nobody can catch it doing so. Going round instead would need
+   either a visible seam or a field big enough to cover a full turn, and both
+   cost more than the honesty is worth. */
+@keyframes taro-wheel {
+  to {
+    transform: rotate(1.5deg);
+  }
+}
+
+.taro-star {
+  position: absolute;
+  left: var(--taro-x);
+  top: var(--taro-y);
+  width: var(--taro-size);
+  height: var(--taro-size);
+  /* Half its own width up and left, so a star sits *on* its coordinate rather
+     than beside it — which also means the scale below has no side to favour and
+     a twinkling star swells in place instead of creeping. */
+  margin: calc(var(--taro-size) / -2);
+  border-radius: 50%;
+  /* Two inks and nothing outside them: white for the near stars, the deck's own
+     lifted blue for the far ones, mixed per star. In oklab, so the middle of the
+     mix stays a star rather than dipping through a grey. */
+  background: color-mix(in oklab, #eef2ff var(--taro-white), var(--star));
+  /* Its own brightness, standing still. Which is also where the reduced-motion
+     rule leaves it: the animation is overridden to a millisecond and has no
+     fill, so what remains is a lit, motionless sky. */
+  opacity: var(--taro-lit);
+  animation: taro-twinkle var(--taro-dur) ease-in-out var(--taro-delay) infinite;
+}
+
+/* Two unequal peaks and an uneven trough. A star gathers, sparks, half-settles,
+   sparks again and goes out — one peak per cycle would be a pulse, and a pulse
+   is what a heartbeat has and scintillation does not. The intermediate stops are
+   calculated from the same two numbers as the ends rather than carried in as two
+   more custom properties: they are fractions of this star's own swing, so they
+   are the shape of the flicker and belong here with the rest of the shape. */
+@keyframes taro-twinkle {
+  0%,
+  100% {
+    opacity: var(--taro-lo);
+    transform: scale(0.88);
+  }
+  34% {
+    opacity: var(--taro-lit);
+    transform: scale(1.18);
+  }
+  56% {
+    opacity: calc(var(--taro-lo) + (var(--taro-lit) - var(--taro-lo)) * 0.36);
+    transform: scale(0.96);
+  }
+  76% {
+    opacity: calc(var(--taro-lo) + (var(--taro-lit) - var(--taro-lo)) * 0.8);
+    transform: scale(1.1);
+  }
+}
+
+/* The four that do something rather than shimmer. A glow, and a cycle that is
+   mostly nothing: they sit at their floor for half a minute and then bloom once,
+   wide and slow, and go back down. Their periods are the longest on the page and
+   share no factor with each other, so two of them blooming together is not
+   something a sitting is long enough to see. */
+.taro-star.is-lantern {
+  box-shadow: 0 0 calc(var(--taro-size) * 2.6) color-mix(in srgb, var(--star) 42%, transparent);
+  animation-name: taro-bloom;
+}
+
+@keyframes taro-bloom {
+  0%,
+  52%,
+  100% {
+    opacity: var(--taro-lo);
+    transform: scale(1);
+  }
+  70% {
+    opacity: var(--taro-lit);
+    transform: scale(1.6);
+  }
+  84% {
+    opacity: calc(var(--taro-lo) + (var(--taro-lit) - var(--taro-lo)) * 0.34);
+    transform: scale(1.14);
   }
 }
 
@@ -1733,6 +1886,12 @@ html[data-app='taro'] body {
 /* Motion is ornament. Without it the flow still reads: the flip becomes a cut,
    the deck sits still, and every state change is still announced in text. */
 @media (prefers-reduced-motion: reduce) {
+  /* The root's own two pseudo-elements are named separately because `.taro *`
+     does not reach them — an element is not a descendant of itself, so the grain
+     and the dust would otherwise be the only two things on the page that kept
+     moving for someone who asked the page to stop. */
+  .taro::before,
+  .taro::after,
   .taro *,
   .taro *::before,
   .taro *::after {
