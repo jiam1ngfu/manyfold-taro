@@ -42,11 +42,6 @@ html[data-app='taro'] body {
      the one accent in the file, and never at full strength. */
   --deep: #002c8b;
   --star: #9ab4ed;
-  /* The same ink taken up past its own white point. It is spent in one place
-     only — on a back the visitor has set aside — so that a chosen card reads as
-     lit from somewhere other than this room. Everything else on the spread is
-     lit by the table, or by nothing. */
-  --moon: #cfe0ff;
 
   --serif: 'Noto Serif SC', 'Songti SC', Georgia, 'Times New Roman', serif;
   --sans: ui-sans-serif, -apple-system, 'PingFang SC', 'Helvetica Neue', Arial, sans-serif;
@@ -1067,18 +1062,6 @@ html[data-app='taro'] body {
     opacity: 0.58;
     transform: scale(0.96);
   }
-}
-
-.taro-fan-card.is-chosen::after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  bottom: -15px;
-  width: 18px;
-  height: 1px;
-  transform: translateX(-50%);
-  background: var(--moon);
-  opacity: 0.5;
 }
 
 /* While the reader is speaking the sweep is inert but stays where it was, so
