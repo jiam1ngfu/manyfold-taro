@@ -229,34 +229,60 @@ html[data-app='taro'] body {
   }
 }
 
+/* A star here is not a disc. It has no edge at any radius, and that is the whole
+   of the rule — the element is the *light*, and `--taro-size` names only the
+   core inside it.
+
+   What was here before was a filled circle with a shadow cast around it, and it
+   could not be made to read as light however it was animated. A hard boundary is
+   a boundary: the eye finds it in a single fixation, and having found it, files
+   the thing as a painted mark on the surface rather than as something shining
+   from behind it. Blurring a shadow around a hard disc does not remove the disc,
+   it just puts a glow behind a coin. So the disc is gone and the falloff is the
+   star: seven stops from a near-white core out to nothing, with no step between
+   them wide enough to be seen as a step. */
 .taro-star {
+  /* The core's colour, named once so the gradient can spend it at six different
+     strengths without restating the mix. Two inks and nothing outside them:
+     white for the near stars, the deck's own lifted blue for the far ones. In
+     oklab, so the middle of the mix stays a star rather than dipping through a
+     grey. */
+  --taro-ink: color-mix(in oklab, #f4f7ff var(--taro-white), var(--star));
   position: absolute;
   left: var(--taro-x);
   top: var(--taro-y);
-  width: var(--taro-size);
-  height: var(--taro-size);
+  /* Six core-widths across, because light has to be given room to stop. The
+     visible core still measures --taro-size — it is the first sixth of this box
+     — and the other five sixths are the falloff, which is the part that does the
+     work. A box cut to the core would have nowhere to put the halo and we would
+     be back to a coin. */
+  width: calc(var(--taro-size) * 6);
+  height: calc(var(--taro-size) * 6);
   /* Half its own width up and left, so a star sits *on* its coordinate rather
      than beside it — which also means the scale below has no side to favour and
-     a twinkling star swells in place instead of creeping. */
-  margin: calc(var(--taro-size) / -2);
-  border-radius: 50%;
-  /* Two inks and nothing outside them: white for the near stars, the deck's own
-     lifted blue for the far ones, mixed per star. In oklab, so the middle of the
-     mix stays a star rather than dipping through a grey. */
-  background: color-mix(in oklab, #eef2ff var(--taro-white), var(--star));
-  /* The halo, and the reason a star here is a light rather than a dot of paint.
-     A hard-edged disc of colour is read as a mark on a surface no matter how
-     small it is; the same disc with light falling off around it is read as
-     something behind the surface, giving light off. That is the entire
-     difference between a sky and a speckle at this size.
+     a breathing star swells in place instead of creeping. */
+  margin: calc(var(--taro-size) * -3);
+  /* Percentages are of the inscribed circle, so 16.7% is exactly the core's own
+     edge — and the core is already down to half strength by the time it gets
+     there. Nothing in this ramp is a boundary; the two outer stops carry almost
+     no alpha and exist only to keep the tail from ending in a visible ring.
 
-     Both terms are the star's own: the blur is a multiple of its width, so the
-     halo travels with it through every scale the keyframes put it through, and
-     the alpha is its brightness, so the brighter a star is the further its light
-     carries. Which is what gives the field a front and a back without anything
-     having to be told which it is in. */
-  box-shadow: 0 0 calc(var(--taro-size) * 1.7)
-    color-mix(in srgb, var(--star) calc(var(--taro-lit) * 60%), transparent);
+     The colour walks from the core's white out to the deck's blue as it fades,
+     which is what light does when it scatters and is also why the halo never
+     reads as a grey smudge. `transparent` is the right final stop and would be
+     wrong on almost any other surface — it means transparent black, which is
+     the exact colour of the sky behind it, so the fade has no fringe to give
+     itself away. */
+  background: radial-gradient(
+    circle closest-side,
+    var(--taro-ink) 0%,
+    color-mix(in srgb, var(--taro-ink) 88%, transparent) 8%,
+    color-mix(in srgb, var(--taro-ink) 50%, transparent) 17%,
+    color-mix(in srgb, var(--star) 23%, transparent) 30%,
+    color-mix(in srgb, var(--star) 8%, transparent) 48%,
+    color-mix(in srgb, var(--star) 2.5%, transparent) 70%,
+    transparent 100%
+  );
   /* Its own brightness, standing still. Which is also where the reduced-motion
      rule leaves it: the animation is overridden to a millisecond and has no
      fill, so what remains is a lit, motionless sky. */
@@ -264,53 +290,83 @@ html[data-app='taro'] body {
   animation: taro-twinkle var(--taro-dur) ease-in-out var(--taro-delay) infinite;
 }
 
-/* Two unequal peaks and an uneven trough. A star gathers, sparks, half-settles,
-   sparks again and goes out — one peak per cycle would be a pulse, and a pulse
-   is what a heartbeat has and scintillation does not. The intermediate stops are
-   calculated from the same two numbers as the ends rather than carried in as two
-   more custom properties: they are fractions of this star's own swing, so they
-   are the shape of the flicker and belong here with the rest of the shape.
+/* Out, then nothing, then slowly back. A star spends about a sixth of its cycle
+   at zero — actually gone, not merely dimmed — and then takes half the cycle to
+   come back up, which is more than twice as long as it took to go out. That
+   asymmetry is the whole feel: a light that fades faster than it gathers reads
+   as something kindling, and a light that gathers faster than it fades reads as
+   something being switched.
 
-   The first peak is at 28% and not at the middle, because where the peak sits is
-   what sets the speed of the only stroke anyone actually sees. The whole swing
-   is spent getting there: on a median star that is a third of an alpha in about
-   a second and a third, which clears the rate at which a change stops being a
-   difference and starts being a movement. Sliding that stop later would keep
-   every other number in this file identical and put the sky back to sleep.
+   The dark is not a pause between animations, it is the longest single thing in
+   the cycle, and it is what the previous version had no room for. A star that
+   only breathed between two lit states could be seen changing but never seen
+   arriving; with the floor on the ground, every star in the field is a small
+   event that happens rather than a value that varies. It also means the sky is
+   never the same sky — at any moment a few of the twenty-one are simply not
+   there, and which few is different every second.
 
-   Scale carries the same stroke a second time. Alpha alone can be argued with by
-   a bright window or a dark room; a point that also grows by half is not
-   ambiguous on any screen, and growing is what a point source does when it
-   brightens, so the two channels are one gesture rather than two effects. */
+   Riding on the way up is one dip and a second, higher peak. That is the flicker
+   inside the breath: a light gathering through air does not climb cleanly, and a
+   single smooth arc — however slow — is a fade, not a star. The dip is placed
+   past the first peak, where it is read as the light being interrupted rather
+   than as it hesitating on the way in.
+
+   The intermediate stops are fractions of this star's own range rather than two
+   more custom properties: they are the shape of the flicker, and the shape
+   belongs here with the rest of the shape.
+
+   Scale carries the same stroke a second time — and now it carries more of it,
+   because the element is a gradient rather than a disc, so scaling it expands a
+   halo instead of inflating a coin. From a little over half size up to a little
+   over full: the light does not just brighten in place, it opens. */
 @keyframes taro-twinkle {
   0%,
+  9% {
+    opacity: var(--taro-lo);
+    transform: scale(0.55);
+  }
+  40% {
+    opacity: calc(var(--taro-lo) + (var(--taro-lit) - var(--taro-lo)) * 0.86);
+    transform: scale(1.02);
+  }
+  49% {
+    opacity: calc(var(--taro-lo) + (var(--taro-lit) - var(--taro-lo)) * 0.61);
+    transform: scale(0.92);
+  }
+  58% {
+    opacity: var(--taro-lit);
+    transform: scale(1.14);
+  }
+  70% {
+    opacity: calc(var(--taro-lo) + (var(--taro-lit) - var(--taro-lo)) * 0.6);
+    transform: scale(0.97);
+  }
+  82% {
+    opacity: calc(var(--taro-lo) + (var(--taro-lit) - var(--taro-lo)) * 0.21);
+    transform: scale(0.76);
+  }
+  93%,
   100% {
     opacity: var(--taro-lo);
-    transform: scale(0.82);
-  }
-  28% {
-    opacity: var(--taro-lit);
-    transform: scale(1.26);
-  }
-  52% {
-    opacity: calc(var(--taro-lo) + (var(--taro-lit) - var(--taro-lo)) * 0.3);
-    transform: scale(0.94);
-  }
-  74% {
-    opacity: calc(var(--taro-lo) + (var(--taro-lit) - var(--taro-lo)) * 0.84);
-    transform: scale(1.16);
+    transform: scale(0.55);
   }
 }
 
-/* The four that do something rather than shimmer. Near-white, half again as
-   wide as the tier below them, and carrying a glow at twice the reach — a
-   lantern has to be recognisable as a different kind of object before its rarer
-   behaviour means anything, and a hierarchy the eye has to measure to notice is
-   not a hierarchy. Their periods are the longest on the page and share no factor
-   with each other, so two of them blooming together is not something a sitting
-   is long enough to see. */
+/* The four that do something rather than shimmer, and the four that stay. Every
+   other star in the field now goes out completely, and a field where everything
+   goes out has nothing to hang on — the eye needs something that is reliably
+   there before the things that come and go can read as coming and going. So a
+   lantern's floor is set in Sky.tsx at a third of its light rather than at zero:
+   it breathes deeper than anything else here and still never leaves.
+
+   Near-white and half again as wide as the tier below it, because a lantern has
+   to be recognisable as a different kind of object before its rarer behaviour
+   means anything, and a hierarchy the eye has to measure to notice is not a
+   hierarchy. It needs no glow of its own — the gradient above is already a glow,
+   and at this size it is a large one. Their periods are the longest on the page
+   and share no factor with each other, so two of them blooming together is not
+   something a sitting is long enough to see. */
 .taro-star.is-lantern {
-  box-shadow: 0 0 calc(var(--taro-size) * 3.2) color-mix(in srgb, var(--star) 52%, transparent);
   animation-name: taro-bloom;
 }
 

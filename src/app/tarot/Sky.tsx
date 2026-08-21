@@ -22,15 +22,17 @@
  *   · bigger when brighter — a brighter point source blooms wider;
  *   · whiter when brighter — dim things go blue, and blue here is the deck's
  *     own ink, so the field never leaves the two inks the cards are printed in;
- *   · slower when brighter — big things are steadier;
- *   · and shallower when brighter, in *relative* terms only. A star's swing is
- *     still set against its brightness, because that is what the atmosphere does
- *     to a point source: a larger apparent source averages the distortion out.
- *     But relative is not what an eye is given. An eye is given absolute alpha,
- *     and the arithmetic has to come out the other way round — the star you can
- *     see must move the most light. The floor under the brightness is what buys
- *     that: at 0.46 even the faintest star swings a quarter of an alpha, where
- *     the old field's *brightest* star swung 0.238 and its median swung 0.124.
+ *   · slower when brighter — big things are steadier.
+ *
+ * What does *not* vary is the depth of the cycle: every star in this tier goes
+ * all the way out and all the way back, so its swing is simply its brightness.
+ * An earlier version set the swing as a fraction of the light — deeper for the
+ * faint stars, which is what the atmosphere really does to a point source — and
+ * it was wrong here for the reason most physical arguments are wrong in a
+ * picture: a fraction is not what an eye is handed. An eye is handed absolute
+ * alpha, and the brightest star swung 0.238 of it while the median swung 0.124,
+ * which is a sky that changes without ever being seen to change. Taking the
+ * floor to zero is what buys the whole of the light back as movement.
  *
  * One star in each quarter of the field is a lantern: bigger, near-white, with a
  * real glow, and a cycle that is mostly quiet — one shallow breath, then a slow
@@ -46,17 +48,25 @@
 
 import { memo, type CSSProperties } from 'react';
 
-/** Thirty cells, about a quarter of them empty, so twenty-odd stars.
+/** Thirty-five cells, an eighth of them empty, so thirty-odd stars.
  *
  *  The count is the design and not a performance note. Fifty-six specks over one
  *  window is a little under a hundred and sixty pixels apart at a desktop width,
  *  which is close enough that the field reads as one grey wash and no single dot
- *  is ever the thing you are looking at. Halving it and spending the room on
+ *  is ever the thing you are looking at. Cutting it and spending the room on
  *  size is the whole trade: a star has to be an object before it can be seen to
- *  do anything. */
-const COLS = 6;
+ *  do anything.
+ *
+ *  What is written here is the *roll*, though, and the roll is no longer the
+ *  field. Since every star in this tier now goes out for part of its cycle, only
+ *  about two thirds of them are alight at any moment — so a roll of twenty-five,
+ *  which is what this was when the stars merely dimmed, quietly became a sky of
+ *  fifteen. Thirty-five cells at an eighth empty puts the *lit* count back to
+ *  about twenty, which is the density that was actually wanted. Count the ones
+ *  you can see, not the ones you made. */
+const COLS = 7;
 const ROWS = 5;
-const VOID = 0.24;
+const VOID = 0.12;
 
 /** The band the grid is laid into, in percent of the field box.
  *
@@ -85,12 +95,16 @@ interface Star {
   /** Where, in percent of the field box. */
   x: number;
   y: number;
-  /** Across, in px. Fractional on purpose — a dot rendered off the pixel grid
-   *  is antialiased into a soft point, which is what a star looks like. */
+  /** The core, in px — not the element, which tarot.css draws six times this
+   *  wide so the light has somewhere to fall off into. Fractional on purpose: a
+   *  core rendered off the pixel grid is antialiased into a soft point, which is
+   *  what a star looks like. */
   size: number;
-  /** Its own brightness, and the ceiling of its flicker. */
+  /** Its own brightness, and the ceiling of its cycle. */
   lit: number;
-  /** The floor of its flicker. */
+  /** The floor of its cycle. Zero for a star, which is the point — it goes out.
+   *  A third of the light for a lantern, which is the only thing here that
+   *  doesn't. */
   lo: number;
   /** How much of the mix is white rather than the deck's blue, in percent. */
   white: number;
@@ -137,20 +151,26 @@ const field = (): Star[] => {
          beat the dead paint it hangs in front of is worse than no star, because
          it puts the eye on the one layer that will never move. */
       const lit = 0.46 + 0.42 * t;
-      const swing = 0.56 - 0.14 * t;
 
       stars.push({
         x: ((col + 0.5 + jitterX * 0.94) / COLS) * 100,
         y: TOP + ((row + 0.5 + jitterY * 0.94) / ROWS) * (BOTTOM - TOP),
         size: 2.5 + 2.1 * t,
         lit,
-        lo: lit * (1 - swing),
+        /* Zero, and not a dim floor. A star in this tier goes out — that is the
+           event the cycle is built around, and a floor of any height turns the
+           event back into a value that merely varies. The whole of a star's
+           light is therefore also the whole of its swing, which is why the
+           period below can be twice what it was without the sky going back to
+           sleep: there is more than twice as much light being moved. */
+        lo: 0,
         white: 30 + 60 * t,
-        /* Three to seven seconds. The old field ran seven to sixteen, and that
-           is the other half of why nothing read as twinkling: a tenth of an
-           alpha spread over twelve seconds is under four hundredths a second,
-           which an eye files as "different now" rather than as "changing". */
-        dur: 3 + 2.4 * t + 2 * spin,
+        /* Six to twelve and a half seconds, against three to seven before. The
+           cycle now has a stretch of darkness and a long climb out of it to pay
+           for, and rushing either would read as a blink. It stays inside the
+           rate an eye reads as movement because the amplitude went up by more
+           than the period did. */
+        dur: 6 + 3 * t + 3.5 * spin,
         delay: 0,
         lantern: false,
       });
@@ -178,7 +198,12 @@ const field = (): Star[] => {
     brightest.size += 1.8;
     brightest.lit = 0.95;
     brightest.white = 96;
-    brightest.lo = 0.95 * 0.62;
+    /* The one floor left in the sky. Everything else here goes out; a field in
+       which everything goes out has nothing to hang on, and the coming and going
+       stops reading as coming and going because there is no fixed thing to read
+       it against. So a lantern breathes deeper than any star and still never
+       leaves. */
+    brightest.lo = 0.95 * 0.32;
     brightest.dur = 30 + rand() * 18;
     brightest.delay = -rand() * brightest.dur;
   }
