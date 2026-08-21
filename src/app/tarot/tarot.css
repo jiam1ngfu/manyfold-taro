@@ -49,6 +49,18 @@ html[data-app='taro'] body {
   /* The deck's own proportions and its one back, in one place: every card on the
      page is cut to this shape, face up or face down, thumbnail or full size. */
   --card-ratio: 640 / 1109;
+  /* The corner, as a percentage of the card's own width — never as a fixed
+     number of pixels, because a card on this page is drawn at anything from 38px
+     wide in a phone's stack to 340px in a reading, and a radius that does not
+     travel with the width is a different card at every size.
+
+     1.2 is not a taste. The printed keyline on every face begins 1.25% of the
+     card's width in from the edge (8px in a 640px plate), and a corner of radius
+     r meets that line exactly when r equals its inset — so 1.25 is the largest
+     radius that takes nothing off the artwork, and this sits just inside it. The
+     back has no keyline to lose, but it is cut to the same figure: two cards from
+     one deck do not have two different corners. */
+  --card-round: 1.2;
   --card-back: url('/cards/back.webp');
   /* What a card is before its picture is on it — the deck's ink run almost all
      the way down to black, so a card that has not loaded is still this deck. */
@@ -600,12 +612,19 @@ html[data-app='taro'] body {
   gap: 16px;
 }
 
+/* The slot is the card's measure. A reading card has no width of its own to
+   round against — it is `width: 100%` of a grid column that answers to the
+   window — so the slot is made a query container and the corner below is read
+   off it in `cqw`. Declared here rather than on `.taro-card` so that nothing
+   containing lands on the element carrying `perspective`, which the flip needs
+   left alone. */
 .taro-slot {
   margin: 0;
   display: flex;
   flex-direction: column;
   gap: 12px;
   align-items: center;
+  container-type: inline-size;
 }
 
 /* The art arrived. The deck is engraved blue-on-white and carries its own frame,
@@ -641,10 +660,15 @@ html[data-app='taro'] body {
   }
 }
 
+/* Both faces take the same corner, off the same measure. They used to take a
+   flat 8px, which is why a back and a face never looked cut from one deck: at
+   340px the back's white margin carried that 8px as a visible sweep while the
+   face's blue edge, with a square keyline printed just inside it, read as sharp
+   — and on a phone the same 8px on a much narrower card was rounder still. */
 .taro-card-face {
   position: absolute;
   inset: 0;
-  border-radius: 8px;
+  border-radius: calc(var(--card-round) * 1cqw);
   backface-visibility: hidden;
   display: grid;
   place-items: center;
@@ -911,13 +935,14 @@ html[data-app='taro'] body {
 /* All 78 backs are one image — a background rather than 78 more elements, and
    one request the browser makes once for the whole sweep. The back is printed
    with its own white keyline, so nothing here draws a border around it; the
-   corner is rounded in proportion to the card, which keeps the radius honest
-   when the deck is scaled up into a stack. */
+   corner is the same fraction of the width the reading cards take, off `--card-w`
+   here because a fan card does have a width of its own. The stack scales this
+   whole element, so the corner scales with it and stays that same fraction. */
 .taro-fan-face {
   position: absolute;
   inset: 0;
   overflow: hidden;
-  border-radius: calc(var(--card-w) * 0.07);
+  border-radius: calc(var(--card-round) * var(--card-w) / 100);
   background: var(--card-back) center / cover no-repeat, var(--card-stock);
   box-shadow: 0 12px 20px -14px #000;
   transition: box-shadow 620ms ease;
