@@ -50,8 +50,10 @@ const READING_KEY = 'taro.readingId';
 const LOCALE_KEY = 'taro.locale';
 
 /** How long the deck shuffles before it is spread out. Long enough to feel like
- *  a ritual, short enough that nobody reaches for the tab bar. */
-const SHUFFLE_MS = 2600;
+ *  a ritual, short enough that nobody reaches for the tab bar — and exactly one
+ *  riffle and one cut, because it is the length of `--shuffle-cycle` in
+ *  tarot.css. Any other number stops the deck mid-gesture. */
+const SHUFFLE_MS = 2800;
 
 /** The character count stays out of sight until the limit is actually near. */
 const COUNTER_FROM = 60;
