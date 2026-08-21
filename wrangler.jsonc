@@ -8,7 +8,7 @@
 // Keep `main`, `assets` and the `DB` binding valid — the app reads all three.
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "manyfold-taro",
+  "name": "manyfold-tarot",
   "main": "./src/worker/index.ts",
   "compatibility_date": "2026-08-01",
   "observability": {
