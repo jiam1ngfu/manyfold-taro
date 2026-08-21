@@ -41,7 +41,7 @@ import {
 import { getConversation, handleChatTurn, resetConversation } from './chat';
 import { tarot } from './tarot/routes';
 
-const SERVICE = 'manyfold-taro';
+const SERVICE = 'manyfold-tarot';
 
 const app = new Hono<{ Bindings: Env }>();
 
